@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Heading from '@/components/Heading';
 import { site } from '@/lib/data';
 import type { Experience } from '@/lib/types';
 
@@ -10,12 +11,12 @@ function Timeline({ list }: { list: Experience[] }) {
     <ul className="tl">
       {list.map((e) => (
         <li key={e.organization + e.position + e.start}>
-          <span className="meta">
+          <span className="yr">
             {e.start} – {e.end}
           </span>
           <div>
             <h3>{e.position}</h3>
-            <p style={{ color: 'var(--fg)', marginTop: 0 }}>{e.organization}</p>
+            <p style={{ color: 'var(--ink)' }}>{e.organization}</p>
             {e.description && <p>{e.description}</p>}
           </div>
         </li>
@@ -28,15 +29,14 @@ export default function ExperiencePage() {
   return (
     <>
       <section className="page-h">
-        <p className="meta">ประสบการณ์</p>
-        <h1>การทำงานและการศึกษา</h1>
+        <Heading light="Work &" bold="Experience" />
       </section>
-      <section className="cols">
-        <h2>การทำงาน</h2>
+      <section className="works">
+        <h2 className="sec-title">การทำงาน</h2>
         <Timeline list={site.experiences.filter((e) => e.type === 'work')} />
       </section>
-      <section className="cols">
-        <h2>การศึกษา</h2>
+      <section className="works">
+        <h2 className="sec-title">การศึกษา</h2>
         <Timeline list={site.experiences.filter((e) => e.type === 'edu')} />
       </section>
     </>
