@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Skills from '@/components/Skills';
 import { projects, site } from '@/lib/data';
 
 export const metadata: Metadata = { title: 'Resume' };
@@ -10,78 +11,78 @@ export default function ResumePage() {
   return (
     <>
       <section className="page-h">
-        <span className="label">Resume</span>
-        <h1>Resume / CV</h1>
+        <p className="meta">Resume</p>
+        <h1>{profile.name}</h1>
+        <p className="lede">
+          {profile.title} · {profile.location} · {profile.email}
+        </p>
         {settings.resumeUrl && (
-          <div className="ctas" style={{ marginTop: 6 }}>
-            <a className="btn pri" href={settings.resumeUrl} download>
-              ดาวน์โหลด PDF
+          <div className="resume-actions">
+            <a className="btn" href={settings.resumeUrl} download>
+              ดาวน์โหลด PDF <span aria-hidden="true">↓</span>
             </a>
           </div>
         )}
       </section>
-      <article className="sheet">
-        <header>
-          <h1 style={{ fontSize: 30 }}>{profile.name}</h1>
-          <p className="muted">
-            {profile.title} · {profile.location} · {profile.email}
-          </p>
-        </header>
-        <section>
-          <h2>สรุป</h2>
+
+      <section className="cols" style={{ borderTopColor: 'var(--fg)' }}>
+        <h2>สรุป</h2>
+        <div className="prose">
           <p>{profile.tagline}</p>
-        </section>
-        <section>
-          <h2>ประสบการณ์ทำงาน</h2>
+        </div>
+      </section>
+      <section className="cols">
+        <h2>ประสบการณ์ทำงาน</h2>
+        <ul className="tl">
           {work.map((e) => (
-            <div className="sheet-row" key={e.organization + e.position}>
-              <span>
+            <li key={e.organization + e.position}>
+              <span className="meta">
                 {e.start} – {e.end}
               </span>
               <div>
-                <b>{e.position}</b>, {e.organization}
-                {e.description && <p className="muted">{e.description}</p>}
+                <h3>
+                  {e.position}, {e.organization}
+                </h3>
+                {e.description && <p>{e.description}</p>}
               </div>
-            </div>
+            </li>
           ))}
-        </section>
-        <section>
-          <h2>ผลงานที่เลือก</h2>
-          {projects.slice(0, 4).map((p) => (
-            <div className="sheet-row" key={p.id}>
-              <span>{p.category}</span>
+        </ul>
+      </section>
+      <section className="cols">
+        <h2>ผลงานที่เลือก</h2>
+        <ul className="tl">
+          {projects.slice(0, 5).map((p) => (
+            <li key={p.id}>
+              <span className="meta">{p.category}</span>
               <div>
-                <b>{p.title}</b>
-                <p className="muted">{p.summary}</p>
+                <h3>{p.title}</h3>
+                <p>{p.summary}</p>
               </div>
-            </div>
+            </li>
           ))}
-        </section>
-        <section>
-          <h2>การศึกษา</h2>
+        </ul>
+      </section>
+      <section className="cols">
+        <h2>ทักษะ</h2>
+        <Skills />
+      </section>
+      <section className="cols">
+        <h2>การศึกษา</h2>
+        <ul className="tl">
           {edu.map((e) => (
-            <div className="sheet-row" key={e.organization + e.position}>
-              <span>
+            <li key={e.organization + e.position}>
+              <span className="meta">
                 {e.start} – {e.end}
               </span>
               <div>
-                <b>{e.organization}</b>
-                <p className="muted">{e.position}</p>
+                <h3>{e.organization}</h3>
+                <p>{e.position}</p>
               </div>
-            </div>
+            </li>
           ))}
-        </section>
-        <section>
-          <h2>ทักษะ</h2>
-          <div className="tags" style={{ paddingTop: 0 }}>
-            {site.skills.map((s) => (
-              <span className="tag" key={s.name}>
-                {s.name}
-              </span>
-            ))}
-          </div>
-        </section>
-      </article>
+        </ul>
+      </section>
     </>
   );
 }
