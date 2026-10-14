@@ -7,20 +7,20 @@ export const metadata: Metadata = { title: 'ประสบการณ์' };
 function Timeline({ list }: { list: Experience[] }) {
   if (!list.length) return <p className="muted">ยังไม่ได้เพิ่ม</p>;
   return (
-    <div className="tl">
+    <ul className="tl">
       {list.map((e) => (
-        <div className="tl-i" key={e.organization + e.position + e.start}>
-          <span className="label">
+        <li key={e.organization + e.position + e.start}>
+          <span className="meta">
             {e.start} – {e.end}
           </span>
-          <h3>{e.position}</h3>
-          <b className="muted" style={{ fontWeight: 500 }}>
-            {e.organization}
-          </b>
-          {e.description && <p>{e.description}</p>}
-        </div>
+          <div>
+            <h3>{e.position}</h3>
+            <p style={{ color: 'var(--fg)', marginTop: 0 }}>{e.organization}</p>
+            {e.description && <p>{e.description}</p>}
+          </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -28,18 +28,16 @@ export default function ExperiencePage() {
   return (
     <>
       <section className="page-h">
-        <span className="label">ประสบการณ์</span>
-        <h1>ประสบการณ์และการศึกษา</h1>
+        <p className="meta">ประสบการณ์</p>
+        <h1>การทำงานและการศึกษา</h1>
       </section>
-      <section className="two">
-        <div className="col">
-          <h2 style={{ fontSize: 20 }}>การทำงาน</h2>
-          <Timeline list={site.experiences.filter((e) => e.type === 'work')} />
-        </div>
-        <div className="col">
-          <h2 style={{ fontSize: 20 }}>การศึกษา</h2>
-          <Timeline list={site.experiences.filter((e) => e.type === 'edu')} />
-        </div>
+      <section className="cols">
+        <h2>การทำงาน</h2>
+        <Timeline list={site.experiences.filter((e) => e.type === 'work')} />
+      </section>
+      <section className="cols">
+        <h2>การศึกษา</h2>
+        <Timeline list={site.experiences.filter((e) => e.type === 'edu')} />
       </section>
     </>
   );
