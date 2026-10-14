@@ -12,38 +12,38 @@ export default function ContactPage() {
   return (
     <>
       <section className="page-h">
-        <span className="label">ติดต่อ</span>
-        <h1>ติดต่อเรื่องงาน</h1>
-        <p className="lede">ส่งข้อความผ่านฟอร์ม หรือติดต่อตามช่องทางด้านล่าง</p>
+        <p className="meta">ติดต่อ</p>
+        <h1>คุยเรื่องงานกันได้</h1>
+        <p className="lede">ส่งอีเมลโดยตรง หรือฝากข้อความไว้ในฟอร์ม จะตอบกลับภายใน 1–2 วันทำการ</p>
       </section>
-      <section className="two">
-        <ContactForm endpoint={settings.contactEndpoint} />
-        <div className="col">
-          <div className="ci">
-            <span className="label">อีเมล</span>
+      <section className="contact">
+        <div className="channels">
+          <div>
+            <span className="meta">อีเมล</span>
             <CopyEmail email={profile.email} />
           </div>
           {isLink(profile.linkedin) && (
-            <div className="ci">
-              <span className="label">LinkedIn</span>
-              <a href={profile.linkedin} target="_blank" rel="noopener noreferrer">
-                {host(profile.linkedin)}
+            <div>
+              <span className="meta">LinkedIn</span>
+              <a className="ulink" style={{ justifySelf: 'start' }} href={profile.linkedin} target="_blank" rel="noopener noreferrer">
+                {host(profile.linkedin)} ↗
               </a>
             </div>
           )}
           {isLink(profile.github) && (
-            <div className="ci">
-              <span className="label">GitHub</span>
-              <a href={profile.github} target="_blank" rel="noopener noreferrer">
-                {host(profile.github)}
+            <div>
+              <span className="meta">GitHub</span>
+              <a className="ulink" style={{ justifySelf: 'start' }} href={profile.github} target="_blank" rel="noopener noreferrer">
+                {host(profile.github)} ↗
               </a>
             </div>
           )}
-          <div className="ci">
-            <span className="label">พื้นที่</span>
+          <div>
+            <span className="meta">พื้นที่</span>
             <span>{profile.location}</span>
           </div>
         </div>
+        <ContactForm endpoint={settings.contactEndpoint} />
       </section>
     </>
   );
