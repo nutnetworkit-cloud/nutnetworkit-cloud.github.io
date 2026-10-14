@@ -1,91 +1,76 @@
 import Link from 'next/link';
-import ProjectCard from '@/components/ProjectCard';
-import Skills from '@/components/Skills';
-import { featured, isLink, projects, site } from '@/lib/data';
+import ContactBlock from '@/components/ContactBlock';
+import HeroSlider from '@/components/HeroSlider';
+import Tile from '@/components/Tile';
+import { featured, paragraphs, projects, SKILL_CATS, site } from '@/lib/data';
 
 export default function Home() {
-  const { profile, settings } = site;
-  const shown = featured.length ? featured : projects.slice(0, 3);
+  const { profile } = site;
+  const heroProjects = featured.length ? featured : projects.slice(0, 3);
+  const mosaic = [...heroProjects, ...projects.filter((p) => !heroProjects.includes(p))].slice(0, 5);
+  const firstBio = paragraphs(profile.bio)[0] ?? '';
+  const focus = SKILL_CATS.map((c) => ({ cat: c, skills: site.skills.filter((s) => s.category === c).map((s) => s.name) })).filter((f) => f.skills.length);
 
   return (
     <>
-      <section className="hero">
-        <div className="hero-id">
-          <b>{profile.name}</b>
-          <span className="meta">
-            {profile.title} · {profile.location}
-          </span>
-          {profile.available && (
-            <span className="meta status">
-              <i aria-hidden="true" />
-              เปิดรับงาน
-            </span>
-          )}
+      <HeroSlider title={profile.title} name={profile.name} tagline={profile.tagline} available={profile.available} projects={heroProjects} />
+
+      <section className="about">
+        <div className="collage" aria-hidden="true">
+          <div className="stat s1">
+            <b>{projects.length}</b>
+            <span>ระบบที่ออกแบบและส่งมอบ</span>
+          </div>
+          <div className="stat s2">
+            <b>1,049</b>
+            <span>เคสบริการที่วิเคราะห์</span>
+          </div>
+          <div className="stat s3">
+            <b>24→69%</b>
+            <span>เคสที่บอทปิดเองได้ (ประเมิน)</span>
+          </div>
         </div>
-        <h1>{profile.tagline}</h1>
-        <div className="hero-links">
-          <Link href="/projects/" className="ulink">
-            ดูผลงาน <span className="arrow">→</span>
+        <div className="about-text">
+          <h2 className="sec-title">About</h2>
+          <p>{firstBio}</p>
+          <Link className="btn" href="/about/">
+            Read more <span className="arrow">→</span>
           </Link>
-          {settings.resumeUrl ? (
-            <a href={settings.resumeUrl} download className="ulink">
-              Resume (PDF) <span className="arrow">↓</span>
-            </a>
-          ) : (
-            settings.showResume && (
-              <Link href="/resume/" className="ulink">
-                Resume <span className="arrow">→</span>
-              </Link>
-            )
-          )}
-          {isLink(profile.github) && (
-            <a href={profile.github} target="_blank" rel="noopener noreferrer" className="ulink">
-              GitHub <span className="arrow">↗</span>
-            </a>
-          )}
-          {isLink(profile.linkedin) && (
-            <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="ulink">
-              LinkedIn <span className="arrow">↗</span>
-            </a>
-          )}
         </div>
       </section>
 
-      <div className="facts">
-        <div>
-          <b>{projects.length}</b>
-          <span>ระบบที่ออกแบบและส่งมอบให้องค์กร</span>
-        </div>
-        <div>
-          <b>1,049</b>
-          <span>เคสบริการที่วิเคราะห์เพื่อออกแบบบอท</span>
-        </div>
-        <div>
-          <b>24% → 69%</b>
-          <span>เคสที่บอทปิดเองได้ (ประเมินจากข้อมูลจริง)</span>
-        </div>
-      </div>
-
-      <section className="block">
-        <div className="block-h">
-          <h2>ผลงานที่เลือก</h2>
-          <Link href="/projects/">ผลงานทั้งหมด {projects.length} ชิ้น →</Link>
-        </div>
-        <div className="rows">
-          {shown.map((p) => (
-            <ProjectCard key={p.id} project={p} />
+      <section className="focus">
+        <h2 className="sec-title">What I Do</h2>
+        <div className="focus-grid">
+          {focus.map((f, i) => (
+            <div className="focus-item" key={f.cat}>
+              <b aria-hidden="true">{i + 1}</b>
+              <div>
+                <h3>{f.cat}</h3>
+                <p>{f.skills.join(' · ')}</p>
+              </div>
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="block">
-        <div className="block-h">
-          <h2>ทักษะ</h2>
-          <Link href="/about/">เกี่ยวกับฉัน →</Link>
+      <section className="works">
+        <h2 className="sec-title">Selected Projects</h2>
+        <div className="mosaic">
+          {mosaic.map((p, i) => (
+            <Tile key={p.id} project={p} tone={i} href={`/projects/${p.slug}/`} />
+          ))}
         </div>
-        <div className="cols" style={{ gridTemplateColumns: 'minmax(0,1fr)', borderTopColor: 'var(--fg)' }}>
-          <Skills />
+        <div className="works-foot">
+          <Link className="btn" href="/projects/">
+            See all {projects.length} <span className="arrow">→</span>
+          </Link>
         </div>
+      </section>
+
+      <section className="works">
+        <h2 className="sec-title">Get in Touch</h2>
+        <ContactBlock />
       </section>
     </>
   );
