@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Heading from '@/components/Heading';
 import Skills from '@/components/Skills';
 import { projects, site } from '@/lib/data';
 
@@ -11,32 +12,31 @@ export default function ResumePage() {
   return (
     <>
       <section className="page-h">
-        <p className="meta">Resume</p>
-        <h1>{profile.name}</h1>
+        <Heading light="Resume" bold={profile.name} />
         <p className="lede">
           {profile.title} · {profile.location} · {profile.email}
         </p>
         {settings.resumeUrl && (
-          <div className="resume-actions">
+          <div>
             <a className="btn" href={settings.resumeUrl} download>
-              ดาวน์โหลด PDF <span aria-hidden="true">↓</span>
+              Download PDF <span className="arrow">↓</span>
             </a>
           </div>
         )}
       </section>
 
-      <section className="cols" style={{ borderTopColor: 'var(--fg)' }}>
-        <h2>สรุป</h2>
+      <section className="panel">
         <div className="prose">
           <p>{profile.tagline}</p>
         </div>
       </section>
-      <section className="cols">
-        <h2>ประสบการณ์ทำงาน</h2>
+
+      <section className="works">
+        <h2 className="sec-title">Experience</h2>
         <ul className="tl">
           {work.map((e) => (
             <li key={e.organization + e.position}>
-              <span className="meta">
+              <span className="yr">
                 {e.start} – {e.end}
               </span>
               <div>
@@ -49,12 +49,15 @@ export default function ResumePage() {
           ))}
         </ul>
       </section>
-      <section className="cols">
-        <h2>ผลงานที่เลือก</h2>
+
+      <section className="works">
+        <h2 className="sec-title">Selected Projects</h2>
         <ul className="tl">
           {projects.slice(0, 5).map((p) => (
             <li key={p.id}>
-              <span className="meta">{p.category}</span>
+              <span className="yr" style={{ fontSize: 15 }}>
+                {p.category}
+              </span>
               <div>
                 <h3>{p.title}</h3>
                 <p>{p.summary}</p>
@@ -63,16 +66,18 @@ export default function ResumePage() {
           ))}
         </ul>
       </section>
-      <section className="cols">
-        <h2>ทักษะ</h2>
+
+      <section className="works">
+        <h2 className="sec-title">Skills</h2>
         <Skills />
       </section>
-      <section className="cols">
-        <h2>การศึกษา</h2>
+
+      <section className="works">
+        <h2 className="sec-title">Education</h2>
         <ul className="tl">
           {edu.map((e) => (
             <li key={e.organization + e.position}>
-              <span className="meta">
+              <span className="yr">
                 {e.start} – {e.end}
               </span>
               <div>
