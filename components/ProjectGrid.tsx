@@ -11,16 +11,16 @@ export default function ProjectGrid({ projects, categories }: { projects: Projec
   const count = (c: string) => (c === 'ทั้งหมด' ? projects.length : projects.filter((p) => p.category === c).length);
 
   return (
-    <section className="stack">
-      <div className="chips" role="group" aria-label="กรองตามประเภท">
+    <section>
+      <div className="filters" role="group" aria-label="กรองตามประเภท">
         {cats.map((c) => (
-          <button key={c} type="button" className={`chip ${c === filter ? 'on' : ''}`} aria-pressed={c === filter} onClick={() => setFilter(c)}>
+          <button key={c} type="button" className={c === filter ? 'on' : ''} aria-pressed={c === filter} onClick={() => setFilter(c)}>
             {c}
-            <b>{count(c)}</b>
+            <sup>{count(c)}</sup>
           </button>
         ))}
       </div>
-      <div className="grid">
+      <div className="rows">
         {list.map((p) => (
           <ProjectCard key={p.id} project={p} />
         ))}

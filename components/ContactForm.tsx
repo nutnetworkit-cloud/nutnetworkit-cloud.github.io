@@ -38,7 +38,7 @@ export default function ContactForm({ endpoint }: { endpoint: string }) {
   }
 
   return (
-    <form className="panel form" onSubmit={onSubmit} noValidate>
+    <form className="form" onSubmit={onSubmit} noValidate>
       <div className="row2">
         <label className="field">
           <span>ชื่อ / บริษัท</span>
@@ -57,8 +57,8 @@ export default function ContactForm({ endpoint }: { endpoint: string }) {
         เว็บไซต์ <input type="text" name="website" tabIndex={-1} autoComplete="off" />
       </label>
       {state.msg && <p className={state.kind === 'sent' ? 'ok-msg' : 'err'} role="status">{state.msg}</p>}
-      <button className="btn pri" type="submit" disabled={state.kind === 'sending'} style={{ justifySelf: 'start' }}>
-        {state.kind === 'sending' ? 'กำลังส่ง…' : 'ส่งข้อความ'}
+      <button className="btn" type="submit" disabled={state.kind === 'sending'}>
+        {state.kind === 'sending' ? 'กำลังส่ง…' : 'ส่งข้อความ'} <span aria-hidden="true">→</span>
       </button>
     </form>
   );
