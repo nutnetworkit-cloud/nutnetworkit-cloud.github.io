@@ -12,6 +12,7 @@
  *   GET  ?action=site          ข้อมูลสาธารณะทั้งหมด (เฉพาะผลงานที่ status = published)
  *   GET  ?action=file&id=...   ไฟล์รูป/Resume จาก Drive (base64) — เฉพาะ ID ที่อ้างอิงใน Sheet
  *   POST {name,email,message}  ข้อความจากฟอร์มติดต่อ → แท็บ messages + อีเมลแจ้งเจ้าของ
+ *   POST {admin:'...', token}  API ของหน้า /admin/ บนเว็บ (ดู admin_) — ตั้งรหัสผ่านจากเมนู Portfolio ก่อน
  *
  * เผยแพร่: เมนู Portfolio → เผยแพร่เว็บ
  *   ถ้าตั้ง Script Property GITHUB_TOKEN (fine-grained token, สิทธิ์ Actions: Read and write เฉพาะ repo นี้)
@@ -41,6 +42,8 @@ function onOpen() {
     .addItem('ตรวจข้อมูล', 'menuValidate')
     .addItem('เผยแพร่เว็บ', 'menuPublish')
     .addSeparator()
+    .addItem('ตั้งรหัสผ่านหน้า admin', 'menuSetAdminPassword')
+    .addItem('ตั้ง GitHub token (เผยแพร่ในคลิกเดียว)', 'menuSetGithubToken')
     .addItem('ตั้งค่าครั้งแรก (สร้างแท็บ)', 'setupPortfolio')
     .addToUi();
 }
@@ -69,6 +72,9 @@ function doGet(e) {
 function doPost(e) {
   let d;
   try { d = JSON.parse(e.postData.contents); } catch (_) { return json_({ ok: false, error: 'invalid body' }); }
+  if (d.admin) {
+    try { return json_(admin_(d)); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); }
+  }
   if (d.website) return json_({ ok: true }); // honeypot: บอทกรอกช่องที่ซ่อนไว้
   const name = String(d.name || '').trim().slice(0, 100);
   const email = String(d.email || '').trim().slice(0, 200);
@@ -165,30 +171,233 @@ function menuValidate() {
   SpreadsheetApp.getUi().alert(errs.length ? 'พบ ' + errs.length + ' จุดที่ต้องแก้:\n\n' + errs.join('\n') : 'ข้อมูลถูกต้อง พร้อมเผยแพร่');
 }
 
+/** ใช้ร่วมกันทั้งเมนูใน Sheet และปุ่มในหน้า admin */
+function publish_() {
+  const errs = validate_();
+  if (errs.length) return { ok: false, errors: errs, error: 'ยังเผยแพร่ไม่ได้ แก้ ' + errs.length + ' จุดก่อน' };
+  const repo = readKv_('settings').github_repo;
+  if (!repo) return { ok: false, error: 'ใส่ github_repo ในแท็บ settings ก่อน เช่น owner/owner.github.io' };
+  const actionsUrl = 'https://github.com/' + repo + '/actions/workflows/deploy.yml';
+  const token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  if (!token) return { ok: true, mode: 'link', url: actionsUrl };
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/deploy.yml/dispatches', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' },
+    payload: JSON.stringify({ ref: 'main' })
+  });
+  if (res.getResponseCode() === 204) return { ok: true, mode: 'dispatched', url: 'https://github.com/' + repo + '/actions' };
+  return { ok: false, mode: 'link', url: actionsUrl, error: 'GitHub ตอบกลับ ' + res.getResponseCode() + ' — token อาจหมดอายุหรือสิทธิ์ไม่พอ' };
+}
+
 function menuPublish() {
   const ui = SpreadsheetApp.getUi();
-  const errs = validate_();
-  if (errs.length) { ui.alert('ยังเผยแพร่ไม่ได้ แก้ ' + errs.length + ' จุดนี้ก่อน:\n\n' + errs.join('\n')); return; }
-  const repo = readKv_('settings').github_repo;
-  if (!repo) { ui.alert('ใส่ github_repo ในแท็บ settings ก่อน เช่น owner/owner.github.io'); return; }
-  const token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
-  const actionsUrl = 'https://github.com/' + repo + '/actions/workflows/deploy.yml';
-  if (token) {
-    const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/deploy.yml/dispatches', {
-      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' },
-      payload: JSON.stringify({ ref: 'main' })
-    });
-    if (res.getResponseCode() === 204) { ui.alert('สั่งสร้างเว็บใหม่แล้ว เว็บจะอัปเดตภายใน 1–3 นาที'); return; }
-    ui.alert('GitHub ตอบกลับ ' + res.getResponseCode() + ' — token อาจหมดอายุหรือสิทธิ์ไม่พอ\nกด Run workflow เองได้ที่:\n' + actionsUrl);
-    return;
-  }
+  const r = publish_();
+  if (r.errors) { ui.alert(r.error + ':\n\n' + r.errors.join('\n')); return; }
+  if (r.mode === 'dispatched') { ui.alert('สั่งสร้างเว็บใหม่แล้ว เว็บจะอัปเดตภายใน 1–3 นาที'); return; }
+  if (!r.url) { ui.alert(r.error); return; }
   const html = HtmlService.createHtmlOutput(
     '<div style="font-family:sans-serif;font-size:14px;line-height:1.6">' +
+    (r.error ? '<p style="color:#b3261e">' + r.error + '</p>' : '') +
     '<p>ข้อมูลถูกต้องแล้ว เปิดหน้า GitHub Actions แล้วกด <b>Run workflow</b> เว็บจะอัปเดตภายใน 1–3 นาที</p>' +
-    '<p><a href="' + actionsUrl + '" target="_blank">เปิดหน้า GitHub Actions ↗</a></p>' +
-    '<p style="color:#666">ถ้าไม่กด เว็บจะอัปเดตเองทุกวันตี 1</p></div>').setWidth(420).setHeight(170);
+    '<p><a href="' + r.url + '" target="_blank">เปิดหน้า GitHub Actions ↗</a></p>' +
+    '<p style="color:#666">ถ้าไม่กด เว็บจะอัปเดตเองทุกวันตี 1</p></div>').setWidth(420).setHeight(190);
   ui.showModalDialog(html, 'เผยแพร่เว็บ');
+}
+
+/* ---------------- admin: หน้า /admin/ บนเว็บ ----------------
+ * ล็อกอินด้วยรหัสผ่านที่เจ้าของตั้งเองจากเมนู (เก็บเป็น hash ใน Script Properties)
+ * ได้ session token อายุ 6 ชม. (ต่ออายุทุกครั้งที่ใช้) · ผิด 5 ครั้งล็อก 15 นาที
+ */
+const ADMIN_TTL = 6 * 60 * 60;
+
+function admin_(d) {
+  const cache = CacheService.getScriptCache();
+  const props = PropertiesService.getScriptProperties();
+  if (d.admin === 'login') return adminLogin_(String(d.password || ''), cache, props);
+  const token = String(d.token || '');
+  const epoch = props.getProperty('ADMIN_EPOCH') || '';
+  if (!/^[a-f0-9-]{36}$/.test(token) || !epoch || cache.get('adm_' + token) !== epoch) return { ok: false, auth: false, error: 'กรุณาเข้าสู่ระบบใหม่' };
+  cache.put('adm_' + token, epoch, ADMIN_TTL);
+  switch (d.admin) {
+    case 'logout': cache.remove('adm_' + token); return { ok: true };
+    case 'get': return adminGet_(props);
+    case 'saveKv': return locked_(() => saveKv_(d.sheet, d.values));
+    case 'saveProject': return locked_(() => saveProject_(d.row || {}));
+    case 'deleteProject': return locked_(() => deleteProject_(String(d.id || '')));
+    case 'saveTable': return locked_(() => saveTable_(d.sheet, d.rows, String(d.project_id || '')));
+    case 'setRead': return locked_(() => setRead_(Number(d.row), d.read === true));
+    case 'upload': return upload_(d, props);
+    case 'file': return adminFile_(String(d.id || ''));
+    case 'validate': return { ok: true, errors: validate_() };
+    case 'publish': return publish_();
+  }
+  return { ok: false, error: 'unknown action' };
+}
+
+function adminLogin_(pw, cache, props) {
+  const fails = Number(cache.get('adm_fail') || 0);
+  if (fails >= 5) return { ok: false, error: 'ใส่รหัสผิดหลายครั้ง รอ 15 นาทีแล้วลองใหม่' };
+  const hash = props.getProperty('ADMIN_HASH');
+  if (!hash) return { ok: false, error: 'ยังไม่ได้ตั้งรหัสผ่าน — เปิด Google Sheet → เมนู Portfolio → ตั้งรหัสผ่านหน้า admin' };
+  Utilities.sleep(300);
+  if (hash_(pw, props.getProperty('ADMIN_SALT')) !== hash) {
+    cache.put('adm_fail', String(fails + 1), 900);
+    return { ok: false, error: 'รหัสผ่านไม่ถูกต้อง' };
+  }
+  cache.remove('adm_fail');
+  const token = Utilities.getUuid();
+  cache.put('adm_' + token, props.getProperty('ADMIN_EPOCH'), ADMIN_TTL);
+  return { ok: true, token: token };
+}
+
+function hash_(pw, salt) {
+  let h = salt + pw;
+  for (let i = 0; i < 200; i++) h = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, h + salt, Utilities.Charset.UTF_8));
+  return h;
+}
+
+function menuSetAdminPassword() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('ตั้งรหัสผ่านหน้า admin', 'อย่างน้อย 10 ตัวอักษร ใช้เข้าหน้า /admin/ บนเว็บ\n(ตั้งใหม่เมื่อไหร่ ทุกเครื่องที่ล็อกอินค้างไว้จะถูกออกจากระบบ)', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const pw = r.getResponseText();
+  if (pw.length < 10) { ui.alert('รหัสผ่านสั้นเกินไป ต้องมีอย่างน้อย 10 ตัวอักษร'); return; }
+  const salt = Utilities.getUuid();
+  PropertiesService.getScriptProperties().setProperties({ ADMIN_SALT: salt, ADMIN_HASH: hash_(pw, salt), ADMIN_EPOCH: Utilities.getUuid() });
+  ui.alert('ตั้งรหัสผ่านแล้ว\nเข้าหน้า admin ได้ที่ https://' + String(readKv_('settings').github_repo || '').split('/')[1] + '/admin/');
+}
+
+function menuSetGithubToken() {
+  const ui = SpreadsheetApp.getUi();
+  const r = ui.prompt('GitHub token', 'วาง fine-grained token (เฉพาะ repo เว็บนี้ · สิทธิ์ Actions: Read and write)\nเว้นว่างแล้วกด OK = ลบ token เดิม', ui.ButtonSet.OK_CANCEL);
+  if (r.getSelectedButton() !== ui.Button.OK) return;
+  const t = r.getResponseText().trim();
+  const props = PropertiesService.getScriptProperties();
+  if (t) props.setProperty('GITHUB_TOKEN', t); else props.deleteProperty('GITHUB_TOKEN');
+  ui.alert(t ? 'บันทึก token แล้ว ปุ่มเผยแพร่จะสั่งสร้างเว็บให้ทันที' : 'ลบ token แล้ว');
+}
+
+function adminGet_(props) {
+  return {
+    ok: true,
+    profile: readKvRows_('profile'),
+    settings: readKvRows_('settings'),
+    projects: readTable_('projects'),
+    images: readTable_('project_images'),
+    skills: readTable_('skills'),
+    experiences: readTable_('experiences'),
+    messages: readMessages_(),
+    lists: { categories: CATEGORIES, coverStyles: COVER_STYLES, skillCats: SKILL_CATS },
+    oneClickPublish: !!props.getProperty('GITHUB_TOKEN')
+  };
+}
+
+function readKvRows_(name) {
+  return sheet_(name).getDataRange().getValues().slice(1)
+    .filter(r => String(r[0]).trim())
+    .map(r => ({ key: String(r[0]).trim(), value: cell_(r[1]), note: String(r[2] || '') }));
+}
+
+function readMessages_() {
+  return sheet_('messages').getDataRange().getValues().slice(1)
+    .map((r, i) => ({ row: i + 2, received_at: cell_(r[0]), name: String(r[1]), email: String(r[2]), message: String(r[3]), read: r[4] === true }))
+    .filter(m => m.name || m.message)
+    .reverse();
+}
+
+function saveKv_(name, values) {
+  if (['profile', 'settings'].indexOf(name) < 0) throw new Error('แก้แท็บนี้ไม่ได้');
+  const sh = sheet_(name);
+  const keys = sh.getRange(1, 1, sh.getMaxRows(), 1).getValues().map(r => String(r[0]).trim());
+  Object.keys(values || {}).forEach(k => {
+    if (!k || k === 'key') return;
+    let row = keys.indexOf(k) + 1;
+    if (row < 2) { row = firstEmptyRow_(sh); keys[row - 1] = k; sh.getRange(row, 1).setValue(k); }
+    sh.getRange(row, 2).setValue(clean_(values[k]));
+  });
+  return { ok: true };
+}
+
+function saveProject_(row) {
+  const sh = sheet_('projects');
+  const head = headOf_(sh);
+  const ids = sh.getRange(1, 1, sh.getMaxRows(), 1).getValues().map(r => String(r[0]).trim());
+  let id = String(row.id || '').trim();
+  if (!id) { let n = 1; while (ids.indexOf('p' + n) >= 0) n++; id = 'p' + n; }
+  const slug = String(row.slug || '').trim();
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error('slug ต้องเป็น a-z, 0-9 คั่นด้วย - เช่น my-project');
+  const slugCol = head.indexOf('slug');
+  const all = sh.getDataRange().getValues();
+  const dup = all.findIndex((r, i) => i > 0 && String(r[0]).trim() !== id && String(r[slugCol]).trim() === slug);
+  if (dup > 0) throw new Error('slug "' + slug + '" ซ้ำกับผลงานแถว ' + (dup + 1));
+  let r = ids.indexOf(id) + 1;
+  if (r < 2) r = firstEmptyRow_(sh);
+  const cur = sh.getRange(r, 1, 1, head.length).getValues()[0];
+  const out = head.map((h, i) => h === 'id' ? id : h === 'updated_at' ? new Date() : h === 'featured' ? row.featured === true :
+    Object.prototype.hasOwnProperty.call(row, h) ? clean_(row[h]) : cur[i]);
+  sh.getRange(r, 1, 1, out.length).setValues([out]);
+  return { ok: true, id: id };
+}
+
+function deleteProject_(id) {
+  const sh = sheet_('projects');
+  const r = sh.getRange(1, 1, sh.getMaxRows(), 1).getValues().findIndex((x, i) => i > 0 && String(x[0]).trim() === id) + 1;
+  if (r < 2) throw new Error('ไม่พบผลงาน ' + id);
+  sh.deleteRow(r);
+  saveTable_('project_images', [], id); // ลบเฉพาะแถวอ้างอิงรูป ไฟล์ใน Drive ยังอยู่
+  return { ok: true };
+}
+
+/** เขียนทับทั้งตาราง (ลำดับตามที่ส่งมา) · project_images แทนที่เฉพาะแถวของผลงานที่ระบุ */
+function saveTable_(name, rows, pid) {
+  if (['skills', 'experiences', 'project_images'].indexOf(name) < 0) throw new Error('แก้แท็บนี้ไม่ได้');
+  const sh = sheet_(name);
+  const head = headOf_(sh);
+  let list = (rows || []).map((o, i) => head.map(h => h === 'sort_order' ? i + 1 : clean_(o[h])));
+  if (name === 'project_images') {
+    if (!pid) throw new Error('ไม่ระบุผลงาน');
+    const pc = head.indexOf('project_id');
+    list.forEach(r => { r[pc] = pid; });
+    list = list.filter(r => String(r[head.indexOf('drive_file_id')]).trim());
+    const keep = readTable_(name).filter(o => String(o.project_id) !== pid).map(o => head.map(h => o[h] === undefined ? '' : o[h]));
+    list = keep.concat(list);
+  }
+  list = list.filter(r => String(r[0]).trim() !== '');
+  const last = sh.getLastRow();
+  if (last > 1) sh.getRange(2, 1, last - 1, head.length).clearContent();
+  if (list.length) sh.getRange(2, 1, list.length, head.length).setValues(list);
+  return { ok: true };
+}
+
+function setRead_(row, read) {
+  const sh = sheet_('messages');
+  if (!(row >= 2 && row <= sh.getLastRow())) throw new Error('ไม่พบข้อความ');
+  sh.getRange(row, SHEETS.messages.indexOf('read') + 1).setValue(read);
+  return { ok: true };
+}
+
+function upload_(d, props) {
+  const mime = String(d.mime || '');
+  if (!/^image\/(png|jpeg|webp|gif)$/.test(mime) && mime !== 'application/pdf') throw new Error('รองรับเฉพาะรูป PNG/JPG/WebP และไฟล์ PDF');
+  const bytes = Utilities.base64Decode(String(d.b64 || ''));
+  if (!bytes.length || bytes.length > 10 * 1024 * 1024) throw new Error('ไฟล์ว่างหรือใหญ่เกิน 10 MB');
+  const name = String(d.name || 'upload').replace(/[\\/:*?"<>|]/g, '_').slice(0, 120);
+  let folder = null;
+  const fid = props.getProperty('UPLOAD_FOLDER');
+  if (fid) { try { folder = DriveApp.getFolderById(fid); } catch (_) { folder = null; } }
+  if (!folder) { folder = DriveApp.createFolder('Portfolio — รูปและไฟล์'); props.setProperty('UPLOAD_FOLDER', folder.getId()); }
+  return { ok: true, id: folder.createFile(Utilities.newBlob(bytes, mime, name)).getId() };
+}
+
+/** รูปตัวอย่างในหน้า admin — เฉพาะไฟล์ที่ Sheet อ้างถึง (รวมผลงานที่ยังเป็น draft) */
+function adminFile_(id) {
+  const allowed = new Set();
+  readTable_('projects').forEach(p => p.cover_image_id && allowed.add(String(p.cover_image_id)));
+  readTable_('project_images').forEach(i => i.drive_file_id && allowed.add(String(i.drive_file_id)));
+  if (!id || !allowed.has(id)) return { ok: false, error: 'file not allowed' };
+  const file = DriveApp.getFileById(id);
+  const blob = file.getThumbnail() || file.getBlob();
+  return { ok: true, mime: blob.getContentType() || 'image/png', b64: Utilities.base64Encode(blob.getBytes()) };
 }
 
 /* ---------------- setup ---------------- */
@@ -237,6 +446,17 @@ function seedRows_(name) {
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 function sheet_(name) { const s = SpreadsheetApp.getActive().getSheetByName(name); if (!s) throw new Error('ไม่พบแท็บ ' + name + ' — รัน setupPortfolio ก่อน'); return s; }
 function cell_(v) { return v instanceof Date ? v.toISOString() : v; }
+function clean_(v) { return typeof v === 'boolean' || typeof v === 'number' ? v : String(v == null ? '' : v).slice(0, 20000); }
+function headOf_(sh) { return sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(h => String(h).trim()); }
+function locked_(fn) { const l = LockService.getScriptLock(); l.waitLock(15000); try { return fn(); } finally { l.releaseLock(); } }
+
+/** แถวว่างแรกจากคอลัมน์ A (appendRow ใช้ไม่ได้เพราะคอลัมน์ checkbox ทำให้ทุกแถว "มีข้อมูล") */
+function firstEmptyRow_(sh) {
+  const r = sh.getRange(1, 1, sh.getMaxRows(), 1).getValues().findIndex((x, i) => i > 0 && x[0] === '') + 1;
+  if (r >= 2) return r;
+  sh.insertRowAfter(sh.getMaxRows());
+  return sh.getMaxRows();
+}
 
 function readTable_(name) {
   const v = sheet_(name).getDataRange().getValues();
