@@ -3,34 +3,32 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function Header({ name, title, showResume }: { name: string; title: string; showResume: boolean }) {
+export default function Header({ mark, name, showResume }: { mark: string; name: string; showResume: boolean }) {
   const path = usePathname();
   const items: [string, string][] = [
-    ['/projects/', 'ผลงาน'],
-    ['/about/', 'เกี่ยวกับ'],
-    ['/experience/', 'ประสบการณ์'],
+    ['/', 'Home'],
+    ['/projects/', 'Projects'],
+    ['/about/', 'About'],
+    ['/experience/', 'Experience'],
     ...(showResume ? ([['/resume/', 'Resume']] as [string, string][]) : []),
-    ['/contact/', 'ติดต่อ']
+    ['/contact/', 'Contact']
   ];
+  const isOn = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 
   return (
     <header className="top">
-      <div className="wrap">
-        <div className="top-in">
-          <Link className="brand" href="/">
-            {name} <span>— {title}</span>
-          </Link>
-          <nav className="nav" aria-label="เมนูหลัก">
-            {items.map(([href, label]) => {
-              const on = path.startsWith(href);
-              return (
-                <Link key={href} href={href} className={on ? 'on' : ''} aria-current={on ? 'page' : undefined}>
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+      <div className="wrap top-in">
+        <Link className="logo" href="/" aria-label="หน้าแรก">
+          <b>{mark}</b>
+          <span>{name}</span>
+        </Link>
+        <nav className="nav caps" aria-label="เมนูหลัก">
+          {items.map(([href, label]) => (
+            <Link key={href} href={href} className={isOn(href) ? 'on' : ''} aria-current={isOn(href) ? 'page' : undefined}>
+              {label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </header>
   );

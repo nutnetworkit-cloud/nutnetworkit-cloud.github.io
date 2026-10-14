@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 
 export default function CopyEmail({ email }: { email: string }) {
   const ref = useRef<HTMLAnchorElement>(null);
-  const [label, setLabel] = useState('คัดลอก');
+  const [label, setLabel] = useState('คัดลอกอีเมล');
 
   function selectText() {
     if (!ref.current) return;
@@ -25,13 +25,13 @@ export default function CopyEmail({ email }: { email: string }) {
   }
 
   return (
-    <div className="copy-row">
-      <a ref={ref} className="email-big ulink" href={`mailto:${email}`}>
+    <>
+      <a ref={ref} className="info-email" href={`mailto:${email}`}>
         {email}
       </a>
       <button type="button" className="textbtn" onClick={copy}>
         {label}
       </button>
-    </div>
+    </>
   );
 }

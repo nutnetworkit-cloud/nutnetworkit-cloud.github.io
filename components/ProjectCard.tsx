@@ -1,40 +1,31 @@
 import Link from 'next/link';
 import { period } from '@/lib/data';
 import type { Project } from '@/lib/types';
+import Tile from './Tile';
 
-// แถวผลงานแบบ case study: ชื่อ + สรุป | ประเภท + เทคโนโลยี | ผลลัพธ์เด่น
-export default function ProjectCard({ project: p }: { project: Project }) {
+// แถวผลงาน: ภาพ (หรือบล็อกตัวอักษร) + การ์ดพื้นเทา สลับซ้ายขวาทีละแถว
+export default function ProjectCard({ project: p, index = 0 }: { project: Project; index?: number }) {
   const when = period(p);
   return (
-    <Link href={`/projects/${p.slug}/`} className="row">
-      <div className="row-main">
-        <h3>{p.title}</h3>
-        <p>{p.summary}</p>
-      </div>
-      <div className="row-info">
-        <span className="meta">
+    <Link href={`/projects/${p.slug}/`} className="prow">
+      <Tile project={p} tone={index} />
+      <div className="pcard">
+        <span className="tile-cat">
           {p.category}
           {when && ` · ${when}`}
         </span>
-        <span className="tech">{p.tech.slice(0, 4).join(' · ')}</span>
-      </div>
-      <div className="row-metric">
+        <h3>{p.title}</h3>
+        <p>{p.summary}</p>
         {p.metric.value && (
-          <>
+          <div className="pm">
             <b>{p.metric.value}</b>
             <span>{p.metric.label}</span>
-          </>
+          </div>
         )}
+        <span className="link-caps">
+          Read more <span className="arrow">→</span>
+        </span>
       </div>
-      <span className="arrow" aria-hidden="true">
-        ↗
-      </span>
-      {p.cover && (
-        <div className="row-thumb">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.cover} alt="" loading="lazy" />
-        </div>
-      )}
     </Link>
   );
 }

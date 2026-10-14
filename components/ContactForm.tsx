@@ -42,23 +42,27 @@ export default function ContactForm({ endpoint }: { endpoint: string }) {
       <div className="row2">
         <label className="field">
           <span>ชื่อ / บริษัท</span>
-          <input type="text" name="name" id="c-name" maxLength={100} required />
+          <input type="text" name="name" id="c-name" maxLength={100} placeholder="ชื่อ / บริษัท" required />
         </label>
         <label className="field">
           <span>อีเมลสำหรับตอบกลับ</span>
-          <input type="email" name="email" id="c-email" maxLength={200} required />
+          <input type="email" name="email" id="c-email" maxLength={200} placeholder="อีเมลสำหรับตอบกลับ" required />
         </label>
       </div>
       <label className="field">
         <span>ข้อความ</span>
-        <textarea name="message" id="c-body" rows={5} maxLength={3000} required placeholder="เช่น ตำแหน่งที่เปิดรับ และช่วงเวลาที่สะดวกสัมภาษณ์" />
+        <textarea name="message" id="c-body" rows={6} maxLength={3000} required placeholder="ข้อความ เช่น ตำแหน่งที่เปิดรับ และช่วงเวลาที่สะดวกสัมภาษณ์" />
       </label>
       <label className="hp" aria-hidden="true">
         เว็บไซต์ <input type="text" name="website" tabIndex={-1} autoComplete="off" />
       </label>
-      {state.msg && <p className={state.kind === 'sent' ? 'ok-msg' : 'err'} role="status">{state.msg}</p>}
+      {state.msg && (
+        <p className={state.kind === 'sent' ? 'ok-msg' : 'err'} role="status">
+          {state.msg}
+        </p>
+      )}
       <button className="btn" type="submit" disabled={state.kind === 'sending'}>
-        {state.kind === 'sending' ? 'กำลังส่ง…' : 'ส่งข้อความ'} <span aria-hidden="true">→</span>
+        {state.kind === 'sending' ? 'Sending…' : 'Send message'} <span className="arrow">→</span>
       </button>
     </form>
   );
