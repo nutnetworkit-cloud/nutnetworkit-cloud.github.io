@@ -9,9 +9,9 @@ export default function ProjectsPage() {
   return (
     <>
       <section className="page-h">
-        <span className="label">ผลงาน</span>
-        <h1>ผลงานทั้งหมด</h1>
-        <p className="lede">ระบบที่พัฒนาและใช้งานจริงในองค์กร กดแต่ละผลงานเพื่อดูปัญหา บทบาท ขั้นตอน และผลลัพธ์</p>
+        <p className="meta">ผลงาน</p>
+        <h1>ระบบที่ออกแบบ พัฒนา และใช้งานจริง</h1>
+        <p className="lede">แต่ละชิ้นเล่าว่าเริ่มจากปัญหาอะไร รับผิดชอบส่วนไหน ทำอย่างไร และได้ผลลัพธ์อะไร</p>
       </section>
       <ProjectGrid projects={projects} categories={[...CATEGORIES, ...extra]} />
     </>
