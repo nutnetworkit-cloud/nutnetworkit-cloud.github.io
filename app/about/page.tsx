@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Heading from '@/components/Heading';
 import Skills from '@/components/Skills';
 import { paragraphs, site } from '@/lib/data';
 
@@ -10,15 +11,13 @@ export default function AboutPage() {
   return (
     <>
       <section className="page-h">
-        <p className="meta">เกี่ยวกับ</p>
-        <h1>{profile.name}</h1>
+        <Heading light="About" bold={profile.name} />
         <p className="lede">
           {profile.title} · {profile.location}
         </p>
       </section>
 
-      <section className="cols">
-        <h2>ประวัติ</h2>
+      <section className="panel">
         <div className="prose">
           {paragraphs(profile.bio).map((t) => (
             <p key={t}>{t}</p>
@@ -27,25 +26,25 @@ export default function AboutPage() {
       </section>
 
       {profile.goal && (
-        <section className="cols">
-          <h2>เป้าหมาย</h2>
+        <section className="cols2">
+          <h2 className="sec-title">Career Goal</h2>
           <div className="prose">
             <p>{profile.goal}</p>
           </div>
         </section>
       )}
 
-      <section className="cols">
-        <h2>ทักษะ</h2>
+      <section className="works">
+        <h2 className="sec-title">Skills</h2>
         <Skills />
       </section>
 
-      <section className="cols">
-        <h2>การศึกษา</h2>
+      <section className="works">
+        <h2 className="sec-title">Education</h2>
         <ul className="tl">
           {edu.map((e) => (
             <li key={e.organization + e.position}>
-              <span className="meta">
+              <span className="yr">
                 {e.start} – {e.end}
               </span>
               <div>
