@@ -1,0 +1,432 @@
+{
+  "generatedAt": "2026-10-14T07:13:39.850Z",
+  "source": "sheet",
+  "profile": {
+    "name": "[ชื่อ นามสกุล]",
+    "title": "Web Developer",
+    "tagline": "สร้างระบบที่ทีมหน้างานใช้ได้จริง ตั้งแต่แอปใน LINE เว็บแอปจัดการงาน ไปจนถึงระบบสั่งแก้จอ Digital Signage จากระยะไกล",
+    "bio": "พัฒนาระบบภายในให้ Push Media บริษัทที่ดูแลจอ Digital Signage ตามสาขาห้าง ทำทั้งเก็บความต้องการจากผู้ใช้ ออกแบบข้อมูล เขียนโค้ด ไปจนถึงทำคู่มือและส่งมอบ\nงานส่วนใหญ่เริ่มจากปัญหาที่ทีมเจอทุกวัน เช่น ตารางงานกระจายอยู่ในแชท หรือเคสจอเสียที่ต้องรีโมตเข้าทีละเครื่อง แล้วแก้ด้วยเครื่องมือที่ทีมเปิดใช้ได้ทันทีโดยไม่ต้องติดตั้งอะไรเพิ่ม",
+    "goal": "อยากทำงานในทีมพัฒนาเว็บที่มีผู้ใช้จริงจำนวนมาก ได้ฝึก code review, testing และสถาปัตยกรรมระบบที่ใหญ่ขึ้น",
+    "location": "กรุงเทพฯ",
+    "email": "you@example.com",
+    "github": "https://github.com/nutnetworkit-cloud",
+    "linkedin": "",
+    "available": true
+  },
+  "skills": [
+    {
+      "name": "JavaScript",
+      "category": "ภาษาและ Frontend"
+    },
+    {
+      "name": "TypeScript",
+      "category": "ภาษาและ Frontend"
+    },
+    {
+      "name": "React / Next.js",
+      "category": "ภาษาและ Frontend"
+    },
+    {
+      "name": "HTML / CSS",
+      "category": "ภาษาและ Frontend"
+    },
+    {
+      "name": "LINE LIFF",
+      "category": "ภาษาและ Frontend"
+    },
+    {
+      "name": "Google Apps Script",
+      "category": "Backend และแพลตฟอร์ม"
+    },
+    {
+      "name": "Node.js",
+      "category": "Backend และแพลตฟอร์ม"
+    },
+    {
+      "name": "WebSocket",
+      "category": "Backend และแพลตฟอร์ม"
+    },
+    {
+      "name": "REST API",
+      "category": "Backend และแพลตฟอร์ม"
+    },
+    {
+      "name": "Cloudflare Tunnel",
+      "category": "Backend และแพลตฟอร์ม"
+    },
+    {
+      "name": "Google Sheets",
+      "category": "เครื่องมือและข้อมูล"
+    },
+    {
+      "name": "GitHub Actions",
+      "category": "เครื่องมือและข้อมูล"
+    },
+    {
+      "name": "PowerShell",
+      "category": "เครื่องมือและข้อมูล"
+    },
+    {
+      "name": "Excel / SheetJS",
+      "category": "เครื่องมือและข้อมูล"
+    },
+    {
+      "name": "Odoo",
+      "category": "เครื่องมือและข้อมูล"
+    }
+  ],
+  "experiences": [
+    {
+      "type": "work",
+      "organization": "Push Media",
+      "position": "[ตำแหน่งของคุณ]",
+      "start": "[ปีที่เริ่ม]",
+      "end": "ปัจจุบัน",
+      "description": "พัฒนาระบบภายในองค์กร 8 ระบบ ครอบคลุมงานพนักงาน งานเมสเซนเจอร์ ทรัพย์สิน IT ประกันจอ และระบบจัดการจอ Digital Signage"
+    },
+    {
+      "type": "edu",
+      "organization": "[ชื่อมหาวิทยาลัย]",
+      "position": "[คณะ / สาขา]",
+      "start": "[ปี]",
+      "end": "[ปี]",
+      "description": ""
+    }
+  ],
+  "projects": [
+    {
+      "id": "p1",
+      "title": "Workforce Task Manager",
+      "slug": "workforce-task-manager",
+      "category": "LINE LIFF",
+      "coverStyle": "liff",
+      "hue": 152,
+      "summary": "ระบบตารางงานและมอบหมายงานพนักงานผ่าน LINE พนักงานดูงานของตัวเองจากมือถือ หัวหน้าเห็นภาพรวมแยกรายทีม",
+      "overview": "เว็บแอปที่เปิดใน LINE (LIFF) ล็อกอินด้วยบัญชี LINE ของพนักงาน แสดงตารางงานรายวัน งานที่ได้รับมอบหมาย และ Dashboard วิเคราะห์ภาระงานของแต่ละทีม",
+      "problem": "ตารางงานเดิมกระจายอยู่ในไฟล์และกลุ่มแชท หัวหน้าไม่เห็นภาระงานของแต่ละทีมแบบทันที พนักงานต้องถามซ้ำว่าวันนี้ต้องไปที่ไหน",
+      "role": "ออกแบบและพัฒนาทั้งระบบคนเดียว ทั้ง backend บน Google Apps Script หน้า LIFF และ Dashboard",
+      "process": [
+        "เก็บความต้องการจากหัวหน้าทีมและพนักงานหน้างาน",
+        "ออกแบบโครงสร้างข้อมูลบน Google Sheets และ API ผ่าน Apps Script",
+        "ทำหน้า LIFF ที่ล็อกอินด้วย LINE โฮสต์บน GitHub Pages",
+        "เพิ่ม Dashboard วิเคราะห์แยกรายทีม และแยกทีม Service ออกจาก ranking",
+        "ปรับความเร็วการโหลดบนมือถือ"
+      ],
+      "tech": [
+        "Google Apps Script",
+        "LINE LIFF",
+        "JavaScript",
+        "GitHub Pages",
+        "Google Sheets"
+      ],
+      "results": [
+        "พนักงานเปิดดูงานใน LINE ได้ทันที ไม่ต้องติดตั้งแอปเพิ่ม",
+        "ปรับปรุงต่อเนื่องจากการใช้งานจริงเกือบ 200 เวอร์ชัน"
+      ],
+      "metric": {
+        "value": "v199",
+        "label": "เวอร์ชันที่ deploy"
+      },
+      "links": {
+        "demo": "",
+        "github": ""
+      },
+      "start": "",
+      "end": "",
+      "featured": true,
+      "cover": null,
+      "images": []
+    },
+    {
+      "id": "p2",
+      "title": "Messenger System",
+      "slug": "messenger-system",
+      "category": "Web App",
+      "coverStyle": "map",
+      "hue": 28,
+      "summary": "ระบบสั่งงานเมสเซนเจอร์รับ-ส่งเอกสารและวางบิล มีแผนที่เส้นทาง ระยะทางรวม และรายงาน PDF / Excel",
+      "overview": "ผู้ขอใช้กรอกงานผ่านเว็บ ผู้ดูแลมอบหมายให้เมสเซนเจอร์ ติดตามสถานะบนแผนที่ และออกรายงานสรุปได้ในหน้าเดียว",
+      "problem": "งานเมสเซนเจอร์สั่งผ่านแชท ติดตามสถานะยาก การสรุประยะทางและงานล่าช้าต้องทำมือทุกเดือน",
+      "role": "ออกแบบและพัฒนาทั้งระบบบน Google Apps Script รวมถึงหน้า Dashboard Map และระบบรายงาน",
+      "process": [
+        "ทำฟอร์มสั่งงานที่ไม่ต้องล็อกอิน",
+        "ระบบมอบหมายงานและอัปเดตสถานะจากหน้างาน",
+        "Dashboard Map แสดงจุดรับ-ส่งและระยะทางรวม",
+        "ปุ่มออกรายงาน PDF และ Excel"
+      ],
+      "tech": [
+        "Google Apps Script",
+        "JavaScript",
+        "Google Maps",
+        "PDF / Excel export"
+      ],
+      "results": [
+        "รายงานเหตุผลการยกเลิกและผลส่งงานตรงเวลา/ล่าช้า ออกได้ในคลิกเดียว",
+        "ผู้ดูแลเห็นงานทั้งหมดบนแผนที่พร้อมระยะทางแยกจุด"
+      ],
+      "metric": {
+        "value": "PDF + Excel",
+        "label": "รายงานอัตโนมัติ"
+      },
+      "links": {
+        "demo": "",
+        "github": ""
+      },
+      "start": "",
+      "end": "2026-09",
+      "featured": true,
+      "cover": null,
+      "images": []
+    },
+    {
+      "id": "p3",
+      "title": "codexAssist Device Management",
+      "slug": "codexassist-device-management",
+      "category": "AI & Automation",
+      "coverStyle": "node",
+      "hue": 172,
+      "summary": "Agent บนเครื่องเล่นจอ + Command Gateway + Dashboard ให้บอทบริการลูกค้าและทีม IT สั่งแก้จอได้จากระยะไกล",
+      "overview": "ชุดระบบ 3 ส่วน: Device Agent บนเครื่องเล่นจอ Windows เชื่อมขาออกไปที่ Gateway, Gateway ตรวจสิทธิ์และส่งคำสั่ง, Dashboard แสดงจอ online/offline และปัญหาแบบสด พร้อม Action Skills ให้บอทเลือกวิธีแก้ตามอาการ",
+      "problem": "เคสจอเสียตามสาขาต้องให้ IT รีโมตเข้าทีละเครื่อง เป้าหมายคือให้บอทแก้ปัญหาที่พบบ่อยได้เองโดยไม่ต้องรอคน",
+      "role": "วิเคราะห์ข้อมูลเคส ออกแบบสถาปัตยกรรม เขียนโค้ด agent / gateway / ตัวติดตั้ง และเขียนคู่มือ",
+      "process": [
+        "วิเคราะห์ Service Report จริง 1,049 เคส แยกว่าเคสไหนบอทแก้เองได้",
+        "ออกแบบ playbook จับคู่อาการกับคำสั่งแก้",
+        "เขียน Agent ที่เชื่อม WebSocket ขาออก ไม่ต้องเปิดพอร์ตที่สาขา",
+        "ลงลายเซ็นคำสั่งด้วย HMAC และรับเฉพาะคำสั่งใน allowlist",
+        "ทำตัวติดตั้งเป็นไฟล์ .exe เดียวพร้อมคู่มือ"
+      ],
+      "tech": [
+        "Node.js",
+        "WebSocket",
+        "HMAC",
+        "PowerShell",
+        "Cloudflare Tunnel",
+        "Ubuntu / systemd"
+      ],
+      "results": [
+        "ประเมินว่าบอทปิดเคสเองได้จาก 24% เพิ่มเป็น ~69% เมื่อทำครบ 3 เฟส",
+        "ทดสอบ end-to-end ผ่าน 13 จาก 13 กรณี"
+      ],
+      "metric": {
+        "value": "24% → 69%",
+        "label": "เคสที่บอทปิดเองได้ (ประเมิน)"
+      },
+      "links": {
+        "demo": "",
+        "github": ""
+      },
+      "start": "2026-09",
+      "end": "",
+      "featured": true,
+      "cover": null,
+      "images": []
+    },
+    {
+      "id": "p4",
+      "title": "Warranty Service",
+      "slug": "warranty-service",
+      "category": "Web App",
+      "coverStyle": "web",
+      "hue": 200,
+      "summary": "เว็บแอปติดตามสัญญา MA และประกันจอ Digital Signage แยกตามสาขาห้าง ใช้งานจริงแล้ว",
+      "overview": "รวมข้อมูลประกันและสัญญาบำรุงรักษาของจอทุกเครื่องไว้ที่เดียว ค้นหาตามสาขา ดูวันหมดอายุ และมีระบบล็อกอินสำหรับผู้ใช้",
+      "problem": "ข้อมูลประกันอยู่ใน Google Sheet ที่พิมพ์มือประมาณ 50 กลุ่มข้อมูล รูปแบบไม่ตรงกัน หาเครื่องที่ใกล้หมดประกันได้ยาก",
+      "role": "ออกแบบและพัฒนาทั้งระบบ รวมถึงแปลงข้อมูลจาก Sheet เดิมให้ใช้เป็นฐานข้อมูลได้",
+      "process": [
+        "สำรวจโครงสร้าง Sheet เดิม",
+        "ทำตัวอ่านข้อมูลที่รองรับรูปแบบที่ไม่สม่ำเสมอ",
+        "ทำหน้าเว็บค้นหาและแสดงสถานะประกัน",
+        "เพิ่มระบบล็อกอินและ deploy ใช้งานจริง"
+      ],
+      "tech": [
+        "Google Apps Script",
+        "Google Sheets",
+        "JavaScript"
+      ],
+      "results": [
+        "ทีมดูสถานะประกันของจอได้จากเว็บเดียว ไม่ต้องเปิดไฟล์",
+        "ใช้งานจริงตั้งแต่ ก.ย. 2026"
+      ],
+      "metric": {
+        "value": "~50",
+        "label": "กลุ่มข้อมูลจาก Sheet เดิม"
+      },
+      "links": {
+        "demo": "",
+        "github": ""
+      },
+      "start": "2026-09",
+      "end": "",
+      "featured": false,
+      "cover": null,
+      "images": []
+    },
+    {
+      "id": "p5",
+      "title": "Asset & ServiceDesk",
+      "slug": "asset-servicedesk",
+      "category": "Web App",
+      "coverStyle": "web",
+      "hue": 222,
+      "summary": "ทะเบียนทรัพย์สินองค์กรและระบบแจ้งซ่อม IT ในเว็บเดียว แยกหน้าผู้ดูแลกับหน้าผู้ใช้ทั่วไป",
+      "overview": "ผู้ดูแลจัดการทะเบียนทรัพย์สินและงานซ่อม ส่วนพนักงานใช้หน้าผู้ใช้แจ้งปัญหาและติดตามสถานะ",
+      "problem": "ข้อมูลทรัพย์สิน IT และงานแจ้งซ่อมแยกกันอยู่ ไม่รู้ประวัติการซ่อมของอุปกรณ์แต่ละชิ้น",
+      "role": "ออกแบบและพัฒนาทั้งระบบ",
+      "process": [
+        "ออกแบบข้อมูลทรัพย์สินและใบแจ้งซ่อม",
+        "ทำหน้าผู้ดูแลและหน้าผู้ใช้แยกกัน",
+        "จำกัดสิทธิ์เข้าใช้เฉพาะบัญชีองค์กร"
+      ],
+      "tech": [
+        "Google Apps Script",
+        "JavaScript",
+        "Google Workspace"
+      ],
+      "results": [
+        "พนักงานแจ้งซ่อมเองได้ IT เห็นประวัติของอุปกรณ์ในที่เดียว"
+      ],
+      "metric": {
+        "value": "",
+        "label": ""
+      },
+      "links": {
+        "demo": "",
+        "github": ""
+      },
+      "start": "",
+      "end": "",
+      "featured": false,
+      "cover": null,
+      "images": []
+    },
+    {
+      "id": "p6",
+      "title": "Sign-off Builder",
+      "slug": "signoff-builder",
+      "category": "UI/UX",
+      "coverStyle": "doc",
+      "hue": 44,
+      "summary": "กรอกฟอร์มแล้วได้เอกสาร Sign-off งานติดตั้ง Kiosk / Signage เป็น PDF พร้อมเซ็น",
+      "overview": "Prototype ที่ให้ทีมติดตั้งกรอกรายละเอียดงานผ่านฟอร์ม แล้วสร้างเอกสารส่งมอบตามแบบฟอร์มบริษัท",
+      "problem": "เอกสาร Sign-off ทำจาก template ที่แก้ด้วยมือ ข้อมูลผิดบ่อยและใช้เวลานาน",
+      "role": "ออกแบบ UX และทำ prototype ที่คลิกได้จริงเพื่อนำเสนอผู้บริหาร",
+      "process": [
+        "ศึกษา template เดิม",
+        "ออกแบบฟอร์มตามลำดับงานติดตั้ง",
+        "ทำ prototype สร้างเอกสารตัวอย่างจากฟอร์ม"
+      ],
+      "tech": [
+        "HTML / CSS",
+        "JavaScript",
+        "PDF"
+      ],
+      "results": [
+        "ผู้บริหารเห็นภาพระบบได้ก่อนลงทุนพัฒนาจริง"
+      ],
+      "metric": {
+        "value": "",
+        "label": ""
+      },
+      "links": {
+        "demo": "",
+        "github": ""
+      },
+      "start": "2026-09",
+      "end": "2026-09",
+      "featured": false,
+      "cover": null,
+      "images": []
+    },
+    {
+      "id": "p7",
+      "title": "Odoo HR Data Migration",
+      "slug": "odoo-hr-migration",
+      "category": "Data",
+      "coverStyle": "data",
+      "hue": 96,
+      "summary": "แปลงข้อมูลพนักงาน 95 คนเป็นไฟล์นำเข้า Odoo HR พร้อมทำ JD และ KPI 32 ตำแหน่ง",
+      "overview": "เตรียมข้อมูลพนักงานจากไฟล์เดิมให้ตรงโครงสร้างของ Odoo HR และจัดทำเอกสารหน้าที่งานกับตัวชี้วัด",
+      "problem": "ข้อมูลพนักงานอยู่หลายไฟล์ คอลัมน์ไม่ตรงกับที่ Odoo ต้องการ",
+      "role": "map ข้อมูล เขียนสคริปต์แปลงไฟล์ และจัดทำเอกสาร JD / KPI",
+      "process": [
+        "map คอลัมน์ข้อมูลเดิมกับฟิลด์ของ Odoo",
+        "เขียนสคริปต์ Node.js + SheetJS แปลงเป็น xlsx และ csv",
+        "ทำ JD และ KPI 32 ตำแหน่งเป็น PDF"
+      ],
+      "tech": [
+        "Node.js",
+        "SheetJS",
+        "Odoo",
+        "Excel"
+      ],
+      "results": [
+        "ได้ไฟล์ import พร้อมใช้สำหรับพนักงาน 95 คน"
+      ],
+      "metric": {
+        "value": "95",
+        "label": "พนักงานที่ map ข้อมูล"
+      },
+      "links": {
+        "demo": "",
+        "github": ""
+      },
+      "start": "2026-10",
+      "end": "",
+      "featured": false,
+      "cover": null,
+      "images": []
+    },
+    {
+      "id": "p9",
+      "title": "Portfolio Website",
+      "slug": "portfolio-website",
+      "category": "Web App",
+      "coverStyle": "web",
+      "hue": 168,
+      "summary": "เว็บนี้เอง: Next.js สร้างหน้าเว็บสำเร็จรูป ดึงข้อมูลจาก Google Sheet ผ่าน Apps Script และ deploy อัตโนมัติด้วย GitHub Actions",
+      "overview": "แยกข้อมูลออกจากโค้ด เจ้าของเว็บแก้ผลงานใน Google Sheet แล้วกดเผยแพร่ ระบบจะสร้างเว็บใหม่และขึ้น GitHub Pages ให้เอง ไม่มีค่าใช้จ่าย",
+      "problem": "อยากได้ Portfolio ที่เพิ่มผลงานได้เองโดยไม่ต้องแก้โค้ด โหลดเร็ว และไม่มีค่าเซิร์ฟเวอร์",
+      "role": "ออกแบบและพัฒนาทั้งหมด",
+      "process": [
+        "ทำ prototype หน้าเว็บและหลังบ้านเพื่อตกลงหน้าตา",
+        "ออกแบบโครงสร้างข้อมูลเป็นแท็บใน Google Sheet",
+        "เขียน Apps Script เป็น API อ่านข้อมูลและรับข้อความจากฟอร์ม",
+        "Next.js สร้างหน้าเว็บสำเร็จรูปตอน build และย่อรูปจาก Drive ด้วย sharp",
+        "GitHub Actions build และ deploy ขึ้น GitHub Pages ทุกครั้งที่กดเผยแพร่"
+      ],
+      "tech": [
+        "Next.js",
+        "TypeScript",
+        "Google Apps Script",
+        "GitHub Actions",
+        "GitHub Pages"
+      ],
+      "results": [
+        "ค่าใช้จ่าย 0 บาท",
+        "เพิ่มผลงานใหม่ได้จาก Google Sheet โดยไม่ต้องแตะโค้ด"
+      ],
+      "metric": {
+        "value": "0 บาท",
+        "label": "ค่าโฮสติ้งต่อเดือน"
+      },
+      "links": {
+        "demo": "",
+        "github": "https://github.com/nutnetworkit-cloud/nutnetworkit-cloud.github.io"
+      },
+      "start": "2026-10",
+      "end": "",
+      "featured": false,
+      "cover": null,
+      "images": []
+    }
+  ],
+  "settings": {
+    "seoTitle": "Web Developer Portfolio",
+    "seoDescription": "ผลงานพัฒนาเว็บแอป LINE LIFF และระบบอัตโนมัติสำหรับองค์กร",
+    "showResume": true,
+    "resumeUrl": null,
+    "contactEndpoint": "https://script.google.com/macros/s/AKfycbyi_m99oaV89qC_Lm9RwhcRCe4_XiFni8biPKPwSlhg16QOoarx0qMhLzit437MesBC/exec",
+    "siteUrl": "https://nutnetworkit-cloud.github.io"
+  }
+}
