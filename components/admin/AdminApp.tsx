@@ -169,6 +169,8 @@ type Saved = (r: Res, okText: string) => Promise<boolean>;
 function Login({ api, onToken }: { api: Api; onToken: (t: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [show, setShow] = useState(false);
+  const [thai, setThai] = useState(false);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const pw = String(new FormData(e.currentTarget).get('password') || '');
@@ -186,8 +188,13 @@ function Login({ api, onToken }: { api: Api; onToken: (t: string) => void }) {
       <p>แก้ไขผลงาน โปรไฟล์ และข้อมูลทั้งหมดของเว็บ</p>
       <label className="adm-f">
         <span>รหัสผ่าน</span>
-        <input type="password" name="password" autoComplete="current-password" autoFocus />
+        <input type={show ? 'text' : 'password'} name="password" autoComplete="current-password" autoFocus onChange={(e) => setThai(/[฀-๿]/.test(e.target.value))} />
       </label>
+      <label className="adm-check">
+        <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
+        <span>แสดงรหัสผ่าน</span>
+      </label>
+      {thai && <p className="err">มีตัวอักษรไทยในรหัส — แป้นพิมพ์อาจยังเป็นภาษาไทยอยู่</p>}
       {err && <p className="err">{err}</p>}
       <button className="btn" type="submit" disabled={busy}>{busy ? 'กำลังตรวจ…' : 'เข้าสู่ระบบ'} <span className="arrow">→</span></button>
       <p className="adm-hint">ยังไม่มีรหัสผ่าน: เปิด Google Sheet &quot;Portfolio Database&quot; → เมนู Portfolio → ตั้งรหัสผ่านหน้า admin</p>
