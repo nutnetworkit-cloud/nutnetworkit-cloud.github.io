@@ -3,9 +3,10 @@ name: Build and deploy
 on:
   push:
     branches: [main]
-  workflow_dispatch: # ปุ่ม Run workflow / เมนู "เผยแพร่เว็บ" ใน Google Sheet
+  workflow_dispatch: # ปุ่ม Run workflow / ปุ่ม "เผยแพร่เว็บ" ในหน้า admin และใน Google Sheet
   schedule:
-    - cron: '0 18 * * *' # ทุกวัน 01:00 เวลาไทย — ดึงข้อมูลล่าสุดจาก Sheet
+    - cron: '*/15 * * * *' # ทุก 15 นาที: สร้างเว็บใหม่เฉพาะเมื่อข้อมูลใน Sheet เปลี่ยน
+    - cron: '0 18 * * *' # ทุกวัน 01:00 เวลาไทย: สร้างใหม่เสมอ (เผื่อเปลี่ยนรูปใน Drive โดยใช้ ID เดิม)
 
 permissions:
   contents: read
@@ -14,10 +15,29 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false # รอบเช็กทุก 15 นาทีต้องไม่ไปยกเลิกรอบที่กำลัง deploy
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: diff
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "${{ github.event.schedule }}" = "0 18 * * *" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          now=$(node scripts/data-hash.mjs)
+          site=$(node -p "require('./site.config.json').siteUrl")
+          live=$(curl -fsSL "$site/data-hash.txt?t=$(date +%s)" || echo none)
+          echo "sheet=$now live=$live"
+          if [ "$now" = "$live" ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+
   build:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +47,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build # ดึงข้อมูลจาก Sheet + ย่อรูป + next build → out/
+      - run: node scripts/data-hash.mjs > out/data-hash.txt
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
