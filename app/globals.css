@@ -1,4 +1,4 @@
-﻿/* Style: "Website of architects" (Figma community) — white page, light-grey panels, two-tone headings
+/* Style: "Website of architects" (Figma community) — white page, light-grey panels, two-tone headings
    (thin grey word over a dark word), uppercase tracked nav and buttons, mosaic tiles, charcoal footer.
    Deliberately single (light) theme to match the reference. */
 :root {
@@ -72,6 +72,8 @@ main { display: grid; gap: clamp(72px, 9vw, 120px); padding-block: 24px 0; }
 .tile-dots { position: absolute; top: 14px; right: 14px; z-index: 1; display: flex; gap: 5px; }
 .tile-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 0 0 1px rgba(0,0,0,.25); transition: background .3s, transform .3s; }
 .tile-dots i.on { background: #fff; transform: scale(1.3); }
+.tile.has-img { touch-action: pan-y; } /* ปัดซ้าย/ขวาบนมือถือ = เปลี่ยนรูป, ปัดขึ้นลง = เลื่อนหน้าตามปกติ */
+@media (hover: none) { .tile-dots { gap: 7px; } .tile-dots i { width: 8px; height: 8px; } }
 .tile.light { background: var(--panel-2); color: var(--ink); }
 .tile.mid { background: #555; }
 .tile-body { position: relative; height: 100%; min-height: inherit; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(18px, 2.4vw, 32px); gap: 16px; }
