@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Project } from '@/lib/types';
+import TileShow from './TileShow';
 
 const TONES = ['', 'light', 'mid'] as const;
 
@@ -8,10 +9,7 @@ export default function Tile({ project: p, tone = 0, href, className = '' }: { p
   const cls = `tile ${p.cover ? 'has-img' : TONES[tone % TONES.length]} ${className}`;
   const body = (
     <>
-      {p.cover && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={p.cover} alt={p.title} loading="lazy" />
-      )}
+      {p.cover && <TileShow srcs={[p.cover, ...p.images.map((m) => m.src)]} alt={p.title} />}
       <div className="tile-body">
         <div>
           <div className="tile-cat">{p.category}</div>
