@@ -11,18 +11,19 @@ export default function ResumePage() {
   const edu = site.experiences.filter((e) => e.type === 'edu');
   return (
     <>
-      <section className="page-h">
-        <Heading light="Resume" bold={profile.name} />
-        <p className="lede">
-          {profile.title} · {profile.location} · {profile.email}
-        </p>
-        {settings.resumeUrl && (
-          <div>
-            <a className="btn" href={settings.resumeUrl} download>
-              Download PDF <span className="arrow">↓</span>
-            </a>
-          </div>
-        )}
+      <section className={`page-h${profile.photo ? ' has-photo' : ''}`}>
+        {profile.photo && <img className="avatar lg" src={profile.photo} alt={profile.name} width={168} height={168} />}
+        <div className="page-h-text">
+          <Heading light="Resume" bold={profile.name} />
+          <p className="lede">{[profile.title, profile.location, profile.email, profile.phone].filter(Boolean).join(' · ')}</p>
+          {settings.resumeUrl && (
+            <div>
+              <a className="btn" href={settings.resumeUrl} download>
+                Download PDF <span className="arrow">↓</span>
+              </a>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="panel">
