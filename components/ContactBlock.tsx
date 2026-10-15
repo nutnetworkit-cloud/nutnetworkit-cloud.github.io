@@ -15,6 +15,12 @@ export default function ContactBlock() {
           <span className="caps">Email</span>
           <CopyEmail email={profile.email} />
         </div>
+        {profile.phone && (
+          <div style={{ display: 'grid', gap: 6 }}>
+            <span className="caps">Phone</span>
+            <a href={`tel:${profile.phone.replace(/[^\d+]/g, '')}`}>{profile.phone}</a>
+          </div>
+        )}
         {isLink(profile.linkedin) && (
           <div style={{ display: 'grid', gap: 6 }}>
             <span className="caps">LinkedIn</span>
