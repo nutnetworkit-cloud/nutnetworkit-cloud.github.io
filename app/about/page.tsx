@@ -10,11 +10,14 @@ export default function AboutPage() {
   const edu = site.experiences.filter((e) => e.type === 'edu');
   return (
     <>
-      <section className="page-h">
-        <Heading light="About" bold={profile.name} />
-        <p className="lede">
-          {profile.title} · {profile.location}
-        </p>
+      <section className={`page-h${profile.photo ? ' has-photo' : ''}`}>
+        {profile.photo && <img className="avatar lg" src={profile.photo} alt={profile.name} width={168} height={168} />}
+        <div className="page-h-text">
+          <Heading light="About" bold={profile.name} />
+          <p className="lede">
+            {profile.title} · {profile.location}
+          </p>
+        </div>
       </section>
 
       <section className="panel">
