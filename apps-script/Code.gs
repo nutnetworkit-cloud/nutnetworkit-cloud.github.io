@@ -236,13 +236,15 @@ function admin_(d) {
 
 function adminLogin_(pw, cache, props) {
   const fails = Number(cache.get('adm_fail') || 0);
-  if (fails >= 5) return { ok: false, error: 'ใส่รหัสผิดหลายครั้ง รอ 15 นาทีแล้วลองใหม่' };
+  if (fails >= 10) return { ok: false, error: 'ใส่รหัสผิดหลายครั้ง รอ 10 นาทีแล้วลองใหม่' };
   const hash = props.getProperty('ADMIN_HASH');
   if (!hash) return { ok: false, error: 'ยังไม่ได้ตั้งรหัสผ่าน — เปิด Google Sheet → เมนู Portfolio → ตั้งรหัสผ่านหน้า admin' };
   Utilities.sleep(300);
-  if (hash_(pw, props.getProperty('ADMIN_SALT')) !== hash) {
-    cache.put('adm_fail', String(fails + 1), 900);
-    return { ok: false, error: 'รหัสผ่านไม่ถูกต้อง' };
+  const salt = props.getProperty('ADMIN_SALT');
+  // เผื่อเว้นวรรคหัว/ท้ายเกินมาตอนตั้งหรือตอนพิมพ์
+  if (hash_(pw.trim(), salt) !== hash && hash_(pw, salt) !== hash) {
+    cache.put('adm_fail', String(fails + 1), 600);
+    return { ok: false, error: 'รหัสผ่านไม่ถูกต้อง (ผิดได้อีก ' + (9 - fails) + ' ครั้ง) — ตรวจว่าแป้นพิมพ์เป็นภาษาอังกฤษ' };
   }
   cache.remove('adm_fail');
   const token = Utilities.getUuid();
@@ -260,8 +262,10 @@ function menuSetAdminPassword() {
   const ui = SpreadsheetApp.getUi();
   const r = ui.prompt('ตั้งรหัสผ่านหน้า admin', 'อย่างน้อย 10 ตัวอักษร ใช้เข้าหน้า /admin/ บนเว็บ\n(ตั้งใหม่เมื่อไหร่ ทุกเครื่องที่ล็อกอินค้างไว้จะถูกออกจากระบบ)', ui.ButtonSet.OK_CANCEL);
   if (r.getSelectedButton() !== ui.Button.OK) return;
-  const pw = r.getResponseText();
+  const pw = r.getResponseText().trim();
   if (pw.length < 10) { ui.alert('รหัสผ่านสั้นเกินไป ต้องมีอย่างน้อย 10 ตัวอักษร'); return; }
+  if (/[฀-๿]/.test(pw) && ui.alert('รหัสผ่านมีตัวอักษรไทย', 'อาจลืมเปลี่ยนแป้นพิมพ์เป็นภาษาอังกฤษ ใช้รหัสนี้ต่อไหม?', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
+  CacheService.getScriptCache().remove('adm_fail');
   const salt = Utilities.getUuid();
   PropertiesService.getScriptProperties().setProperties({ ADMIN_SALT: salt, ADMIN_HASH: hash_(pw, salt), ADMIN_EPOCH: Utilities.getUuid() });
   ui.alert('ตั้งรหัสผ่านแล้ว\nเข้าหน้า admin ได้ที่ https://' + String(readKv_('settings').github_repo || '').split('/')[1] + '/admin/');
