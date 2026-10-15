@@ -54,7 +54,13 @@ export default async function ProjectPage({ params }: Params) {
       </section>
 
       <div className="cs-hero">
-        <Tile project={p} tone={i} />
+        {p.cover ? (
+          // รูปหน้าจอจริง: แสดงเต็มภาพ ไม่ครอป ไม่ทับตัวหนังสือ (ชื่อผลงานอยู่ด้านบนแล้ว)
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="cs-cover" src={p.cover} alt={p.title} />
+        ) : (
+          <Tile project={p} tone={i} />
+        )}
       </div>
 
       <div className="cs-grid">
@@ -98,8 +104,13 @@ export default async function ProjectPage({ params }: Params) {
             <Sec title="ภาพประกอบ">
               <div className="gal">
                 {p.images.map((m) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={m.src} src={m.src} alt={m.alt} loading="lazy" />
+                  <figure key={m.src}>
+                    <a href={m.src} target="_blank" rel="noopener">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={m.src} alt={m.alt} loading="lazy" />
+                    </a>
+                    {m.alt && <figcaption>{m.alt}</figcaption>}
+                  </figure>
                 ))}
               </div>
             </Sec>
