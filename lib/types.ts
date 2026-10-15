@@ -31,9 +31,11 @@ export interface Profile {
   goal: string;
   location: string;
   email: string;
+  phone: string;
   github: string;
   linkedin: string;
   available: boolean;
+  photo: string | null;
 }
 
 export interface Experience {
@@ -57,6 +59,7 @@ export interface Site {
     seoDescription: string;
     showResume: boolean;
     resumeUrl: string | null;
+    stats: { value: string; label: string }[];
     contactEndpoint: string;
     siteUrl: string;
   };
