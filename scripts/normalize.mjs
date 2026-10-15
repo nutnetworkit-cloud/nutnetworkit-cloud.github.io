@@ -5,6 +5,7 @@ const str = (v) => (v === null || v === undefined ? '' : String(v).trim());
 const lines = (v) => str(v).split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
 const list = (v) => str(v).split(',').map((s) => s.trim()).filter(Boolean);
 const COVER_STYLES = ['liff', 'web', 'map', 'node', 'data', 'mobile', 'doc'];
+const STAT_DEFAULTS = [['1,049', 'เคสบริการที่วิเคราะห์'], ['24→69%', 'เคสที่บอทปิดเองได้ (ประเมิน)']];
 
 /**
  * @param {any} raw  ผลลัพธ์จาก Apps Script
@@ -54,9 +55,11 @@ export function normalize(raw, opt) {
       goal: str(pr.goal),
       location: str(pr.location),
       email: str(pr.email),
+      phone: str(pr.phone),
       github: str(pr.github),
       linkedin: str(pr.linkedin),
-      available: truthy(pr.available)
+      available: truthy(pr.available),
+      photo: opt.media[str(pr.photo_drive_id)] || null
     },
     skills: (raw.skills || []).filter((s) => str(s.name)).map((s) => ({ name: str(s.name), category: str(s.category) })),
     experiences: (raw.experiences || []).map((e) => ({
@@ -73,6 +76,11 @@ export function normalize(raw, opt) {
       seoDescription: str(st.seo_description),
       showResume: str(st.show_resume) === '' ? true : truthy(st.show_resume),
       resumeUrl: opt.resumeUrl,
+      // ตัวเลขเด่นหน้าแรก: ยังไม่มีคีย์ใน Sheet = ใช้ค่าเดิม · มีคีย์แต่เว้นว่าง = ไม่แสดงช่องนั้น
+      stats: STAT_DEFAULTS.map(([v, l], i) => {
+        const n = i + 2;
+        return st[`stat${n}_value`] === undefined ? { value: v, label: l } : { value: str(st[`stat${n}_value`]), label: str(st[`stat${n}_label`]) };
+      }).filter((x) => x.value),
       contactEndpoint: opt.contactEndpoint,
       siteUrl: opt.siteUrl
     }

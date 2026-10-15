@@ -39,6 +39,8 @@ await fs.mkdir(mediaDir, { recursive: true });
 const ids = new Set();
 raw.projects.forEach((p) => p.cover_image_id && ids.add(String(p.cover_image_id).trim()));
 raw.images.forEach((i) => i.drive_file_id && ids.add(String(i.drive_file_id).trim()));
+const photoId = String(raw.profile.photo_drive_id || '').trim();
+if (photoId) ids.add(photoId);
 
 let sharp = null;
 try { sharp = (await import('sharp')).default; } catch { console.warn('[fetch-data] ไม่มี sharp → เก็บรูปขนาดเดิม'); }
@@ -50,7 +52,8 @@ for (const id of ids) {
   const buf = Buffer.from(f.b64, 'base64');
   const safe = id.replace(/[^A-Za-z0-9_-]/g, '');
   if (sharp && f.mime !== 'image/gif' && f.mime !== 'image/svg+xml') {
-    await sharp(buf).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 82 }).toFile(path.join(mediaDir, `${safe}.webp`));
+    const size = id === photoId ? { width: 800, height: 800, fit: 'cover' } : { width: 1600 }; // รูปโปรไฟล์ครอปเป็นสี่เหลี่ยมจัตุรัส
+    await sharp(buf).rotate().resize({ ...size, withoutEnlargement: true }).webp({ quality: 82 }).toFile(path.join(mediaDir, `${safe}.webp`));
     media[id] = `/media/${safe}.webp`;
   } else {
     const ext = { 'image/png': 'png', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/webp': 'webp' }[f.mime] || 'jpg';
