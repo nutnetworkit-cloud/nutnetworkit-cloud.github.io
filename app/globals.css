@@ -73,7 +73,7 @@ main { display: grid; gap: clamp(72px, 9vw, 120px); padding-block: 24px 0; }
 .tile-cat { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; opacity: .7; }
 .tile-title { font-size: clamp(20px, 2.2vw, 30px); font-weight: 500; line-height: 1.2; color: inherit; max-width: 16ch; }
 .tile-metric { font-size: clamp(28px, 4vw, 56px); font-weight: 300; line-height: 1; opacity: .35; align-self: flex-end; text-align: right; }
-.tile.has-img .tile-body { background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0) 55%); color: #fff; }
+.tile.has-img .tile-body { justify-content: flex-end; background: linear-gradient(to top, rgba(0,0,0,.78), rgba(0,0,0,.35) 45%, rgba(0,0,0,0) 75%); color: #fff; }
 .tile.has-img .tile-metric { display: none; }
 
 /* hero */
@@ -187,7 +187,12 @@ textarea { min-height: 150px; resize: vertical; }
 .side dl { margin: 0; display: grid; gap: 18px; }
 .side dd { margin: 4px 0 0; color: var(--ink); }
 .side .big { font-size: 26px; font-weight: 500; line-height: 1.2; }
-.gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.cs-cover { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.gal { display: grid; gap: 32px; }
+.gal figure { margin: 0; display: grid; gap: 10px; }
+.gal a { display: block; cursor: zoom-in; }
+.gal img { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.gal figcaption { font-size: 14px; color: var(--muted); }
 .next { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); text-decoration: none; }
 .next .tile { min-height: 220px; }
 .next-txt { background: var(--panel); padding: 32px; display: grid; align-content: center; gap: 10px; }
