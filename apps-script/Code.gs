@@ -180,11 +180,17 @@ function publish_() {
   const actionsUrl = 'https://github.com/' + repo + '/actions/workflows/deploy.yml';
   const token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
   if (!token) return { ok: true, mode: 'link', url: actionsUrl };
-  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/deploy.yml/dispatches', {
-    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' },
-    payload: JSON.stringify({ ref: 'main' })
-  });
+  let res;
+  try {
+    res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/deploy.yml/dispatches', {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' },
+      payload: JSON.stringify({ ref: 'main' })
+    });
+  } catch (err) {
+    // เช่น โควตา UrlFetch รายวันของบัญชี Google เต็ม → ให้กด Run workflow เองแทน
+    return { ok: false, mode: 'link', url: actionsUrl, error: 'สั่งเผยแพร่อัตโนมัติไม่ได้ (' + String(err && err.message || err).slice(0, 120) + ')' };
+  }
   if (res.getResponseCode() === 204) return { ok: true, mode: 'dispatched', url: 'https://github.com/' + repo + '/actions' };
   return { ok: false, mode: 'link', url: actionsUrl, error: 'GitHub ตอบกลับ ' + res.getResponseCode() + ' — token อาจหมดอายุหรือสิทธิ์ไม่พอ' };
 }
