@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type FormEvent } from 'react';
 
 /* หน้า admin: ทุกอย่างบันทึกลง Google Sheet ผ่าน Apps Script (POST {admin, token})
-   เว็บจริงอัปเดตหลังกด "เผยแพร่เว็บ" (GitHub Actions สร้างเว็บใหม่จาก Sheet) */
+   เว็บจริงอัปเดตเอง: Apps Script (autoPublish) สั่ง GitHub Actions สร้างเว็บใหม่หลังหยุดแก้ 2 นาที */
 
 type Row = Record<string, unknown>;
 type KV = { key: string; value: unknown; note: string };
@@ -32,7 +32,7 @@ const store = {
 const s = (v: unknown) => (v == null ? '' : String(v));
 const bool = (v: unknown) => v === true || s(v).toUpperCase() === 'TRUE';
 
-const Ctx = createContext<{ api: Api; notify: (n: Notice | null) => void; thumbs: Record<string, string>; loadThumb: (id: string) => void }>(null!);
+const Ctx = createContext<{ api: Api; notify: (n: Notice | null) => void; thumbs: Record<string, string>; loadThumb: (id: string) => void; putThumb: (id: string, src: string) => void }>(null!);
 
 export default function AdminApp({ endpoint }: { endpoint: string }) {
   const [token, setToken] = useState('');
@@ -78,11 +78,12 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
     },
     [api, thumbs]
   );
+  const putThumb = useCallback((id: string, src: string) => setThumbs((t) => ({ ...t, [id]: src })), []);
 
   const saved = async (r: Res, okText: string) => {
     if (!r.ok) { setNotice({ kind: 'err', text: r.error || 'บันทึกไม่สำเร็จ' }); return false; }
     setDirty(true);
-    setNotice({ kind: 'ok', text: okText + ' — เว็บจริงจะอัปเดตเองภายใน 15 นาที (กด "เผยแพร่เว็บ" ถ้าอยากให้เร็วขึ้น)' });
+    setNotice({ kind: 'ok', text: okText + ' — เว็บจริงจะอัปเดตเองภายใน 5–10 นาที (กด "เผยแพร่เว็บ" ถ้าอยากให้เร็วขึ้น)' });
     await reload();
     return true;
   };
@@ -99,7 +100,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
     const r = await api('publish');
     if (r.errors) return setNotice({ kind: 'err', text: r.error || '', list: r.errors });
     if (r.mode === 'dispatched') { setDirty(false); return setNotice({ kind: 'ok', text: 'สั่งสร้างเว็บใหม่แล้ว เว็บจริงจะอัปเดตภายใน 1–3 นาที', link: s(r.url) }); }
-    if (r.mode === 'link') { setDirty(false); return setNotice({ kind: 'ok', text: 'ข้อมูลถูกต้องแล้ว · เว็บจะอัปเดตเองภายใน 15 นาที (อยากให้เร็วขึ้น: เปิด GitHub Actions แล้วกด Run workflow)', link: s(r.url) }); }
+    if (r.mode === 'link') { setDirty(false); return setNotice({ kind: 'ok', text: 'ข้อมูลถูกต้องแล้ว · เว็บจะอัปเดตเองภายใน 5–10 นาที (อยากให้เร็วขึ้น: เปิด GitHub Actions แล้วกด Run workflow)', link: s(r.url) }); }
     setNotice({ kind: 'err', text: r.error || 'เผยแพร่ไม่สำเร็จ' });
   }
 
@@ -118,7 +119,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
   ];
 
   return (
-    <Ctx.Provider value={{ api, notify: setNotice, thumbs, loadThumb }}>
+    <Ctx.Provider value={{ api, notify: setNotice, thumbs, loadThumb, putThumb }}>
       <div className="adm">
         <div className="adm-bar">
           <nav className="filters adm-tabs" aria-label="ส่วนที่แก้ไข">
@@ -134,7 +135,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
             <button type="button" className="adm-ghost" onClick={() => { void api('logout'); logout(); }}>ออกจากระบบ</button>
           </div>
         </div>
-        {dirty && !notice && <p className="adm-note">มีการแก้ไขที่ยังไม่ขึ้นเว็บจริง — เว็บจะอัปเดตเองภายใน 15 นาที</p>}
+        {dirty && !notice && <p className="adm-note">มีการแก้ไขที่ยังไม่ขึ้นเว็บจริง — เว็บจะอัปเดตเองภายใน 5–10 นาที</p>}
         {notice && (
           <div className={`adm-notice ${notice.kind}`} role="status">
             <span>{notice.text}</span>
@@ -148,9 +149,9 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
         ) : tab === 'projects' ? (
           <Projects data={data} saved={saved} />
         ) : tab === 'profile' ? (
-          <KvForm sheet="profile" rows={data.profile} saved={saved} />
+          <KvForm key="profile" sheet="profile" rows={data.profile} saved={saved} />
         ) : tab === 'settings' ? (
-          <KvForm sheet="settings" rows={data.settings} saved={saved} oneClick={data.oneClickPublish} />
+          <KvForm key="settings" sheet="settings" rows={data.settings} saved={saved} oneClick={data.oneClickPublish} />
         ) : tab === 'skills' ? (
           <Skills data={data} saved={saved} />
         ) : tab === 'experiences' ? (
@@ -394,16 +395,18 @@ function ImageSlot({ id, onChange }: { id: string; onChange: (id: string) => voi
   );
 }
 
-function Uploader({ label, accept, onDone }: { label: string; accept: string; onDone: (id: string) => void }) {
-  const { api, notify } = useContext(Ctx);
+function Uploader({ label, accept, square, onDone }: { label: string; accept: string; square?: boolean; onDone: (id: string) => void }) {
+  const { api, notify, putThumb } = useContext(Ctx);
   const [busy, setBusy] = useState(false);
   async function pick(f: File | undefined) {
     if (!f) return;
     setBusy(true);
     notify({ kind: 'busy', text: `กำลังอัปโหลด ${f.name}…` });
     try {
-      const { b64, mime, name } = f.type.startsWith('image/') ? await shrink(f) : { b64: await toB64(f), mime: f.type, name: f.name };
+      const isImg = f.type.startsWith('image/');
+      const { b64, mime, name } = isImg ? await shrink(f, square) : { b64: await toB64(f), mime: f.type, name: f.name };
       const r = await api('upload', { b64, mime, name });
+      if (r.ok && isImg) putThumb(s(r.id), `data:${mime};base64,${b64}`); // แสดงตัวอย่างทันที ก่อนกดบันทึก
       if (r.ok) { onDone(s(r.id)); notify({ kind: 'ok', text: 'อัปโหลดแล้ว — อย่าลืมกดบันทึก' }); }
       else notify({ kind: 'err', text: r.error || 'อัปโหลดไม่สำเร็จ' });
     } catch {
@@ -428,15 +431,18 @@ function toB64(f: Blob): Promise<string> {
   });
 }
 
-/** ย่อรูปฝั่งเบราว์เซอร์ก่อนส่ง (กว้างไม่เกิน 1920px, JPEG 88%) — PNG เล็ก ๆ ส่งตามเดิม */
-async function shrink(f: File) {
+/** ย่อรูปฝั่งเบราว์เซอร์ก่อนส่ง (กว้างไม่เกิน 1920px, JPEG 88%) — PNG เล็ก ๆ ส่งตามเดิม
+ *  square: ครอปกลางภาพเป็นสี่เหลี่ยมจัตุรัส ไม่เกิน 1000px (รูปโปรไฟล์) */
+async function shrink(f: File, square = false) {
   const bmp = await createImageBitmap(f);
-  const scale = Math.min(1, 1920 / bmp.width);
-  if (scale === 1 && f.size < 1.5e6) return { b64: await toB64(f), mime: f.type, name: f.name };
+  const side = Math.min(bmp.width, bmp.height);
+  const [sx, sy, sw, sh] = square ? [(bmp.width - side) / 2, (bmp.height - side) / 2, side, side] : [0, 0, bmp.width, bmp.height];
+  const scale = Math.min(1, (square ? 1000 : 1920) / sw);
+  if (!square && scale === 1 && f.size < 1.5e6) return { b64: await toB64(f), mime: f.type, name: f.name };
   const c = document.createElement('canvas');
-  c.width = Math.round(bmp.width * scale);
-  c.height = Math.round(bmp.height * scale);
-  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+  c.width = Math.round(sw * scale);
+  c.height = Math.round(sh * scale);
+  c.getContext('2d')!.drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
   const blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('encode'))), 'image/jpeg', 0.88));
   return { b64: await toB64(blob), mime: 'image/jpeg', name: f.name.replace(/\.\w+$/, '') + '.jpg' };
 }
@@ -462,68 +468,205 @@ function Order({ i, list, move, remove, same = () => true }: { i: number; list: 
   );
 }
 
-/* ---------------- โปรไฟล์ / ตั้งค่า ---------------- */
-const LABELS: Record<string, string> = {
-  name: 'ชื่อ นามสกุล', title: 'ตำแหน่งที่สมัคร', tagline: 'แนะนำตัวสั้น (หน้าแรก)', bio: 'ประวัติ (หน้า About)', goal: 'เป้าหมายในสายอาชีพ',
-  location: 'ที่อยู่ / จังหวัด', email: 'อีเมลที่แสดงบนเว็บ', github: 'ลิงก์ GitHub', linkedin: 'ลิงก์ LinkedIn', available: 'แสดงป้าย "เปิดรับงาน"',
-  seo_title: 'ชื่อเว็บ (Google / แท็บเบราว์เซอร์)', seo_description: 'คำอธิบายเว็บบน Google', show_resume: 'แสดงหน้า Resume',
-  resume_drive_id: 'ไฟล์ Resume (PDF)', github_repo: 'GitHub repo ของเว็บ'
-};
-const LONG = new Set(['tagline', 'bio', 'goal', 'seo_description']);
+/* ---------------- โปรไฟล์ / ตั้งค่า ----------------
+   ฟิลด์จัดเป็นหมวดตาม schema ด้านล่าง · คีย์ที่มีใน Sheet แต่ไม่อยู่ใน schema แสดงในหมวด "อื่น ๆ" (ไม่หาย)
+   คีย์ใหม่ (เช่น photo_drive_id, phone) ยังไม่ต้องมีใน Sheet — บันทึกครั้งแรก Apps Script เพิ่มแถวให้เอง */
+type Kind = 'text' | 'long' | 'bool' | 'email' | 'url' | 'tel' | 'photo' | 'pdf';
+type Field = { key: string; label: string; kind?: Kind; hint?: string; required?: boolean; rows?: number; max?: number; placeholder?: string; def?: string };
+type Group = { title: string; desc?: string; fields: Field[] };
+
+const PROFILE_GROUPS: Group[] = [
+  { title: 'รูปโปรไฟล์', fields: [{ key: 'photo_drive_id', label: '', kind: 'photo', hint: 'รูปหน้าตรง พื้นหลังเรียบ · ระบบครอปเป็นสี่เหลี่ยมจัตุรัสให้เอง แสดงเป็นวงกลมบนหน้า About, Resume และหน้าแรก' }] },
+  {
+    title: 'ข้อมูลส่วนตัว',
+    fields: [
+      { key: 'name', label: 'ชื่อ นามสกุล', required: true },
+      { key: 'title', label: 'ตำแหน่ง', required: true, hint: 'แสดงบนหัวเว็บ หน้าแรก และ footer' },
+      { key: 'location', label: 'ที่อยู่ / จังหวัด', placeholder: 'เช่น กรุงเทพฯ' },
+      { key: 'available', label: 'แสดงป้าย "เปิดรับงาน"', kind: 'bool' }
+    ]
+  },
+  {
+    title: 'ช่องทางติดต่อ',
+    desc: 'ทุกช่องแสดงบนเว็บสาธารณะ — เว้นว่างช่องที่ไม่ต้องการให้แสดง',
+    fields: [
+      { key: 'email', label: 'อีเมล', kind: 'email', required: true, hint: 'ข้อความจากฟอร์มติดต่อส่งไปที่อีเมลเจ้าของ Sheet ไม่ใช่อีเมลนี้' },
+      { key: 'phone', label: 'เบอร์โทร', kind: 'tel', placeholder: 'เช่น 08x-xxx-xxxx' },
+      { key: 'github', label: 'ลิงก์ GitHub', kind: 'url', placeholder: 'https://github.com/…' },
+      { key: 'linkedin', label: 'ลิงก์ LinkedIn', kind: 'url', placeholder: 'https://www.linkedin.com/in/…' }
+    ]
+  },
+  {
+    title: 'แนะนำตัว',
+    fields: [
+      { key: 'tagline', label: 'แนะนำตัวสั้น (หน้าแรก)', kind: 'long', rows: 2, max: 200 },
+      { key: 'bio', label: 'ประวัติ (หน้า About)', kind: 'long', rows: 7, hint: 'ขึ้นบรรทัดใหม่ = ย่อหน้าใหม่ · ย่อหน้าแรกแสดงบนหน้าแรกด้วย' },
+      { key: 'goal', label: 'เป้าหมายในสายอาชีพ', kind: 'long', rows: 3 }
+    ]
+  }
+];
+
+const SETTINGS_GROUPS: Group[] = [
+  {
+    title: 'เว็บและ Google',
+    fields: [
+      { key: 'seo_title', label: 'ชื่อเว็บ (Google / แท็บเบราว์เซอร์)', required: true, max: 70 },
+      { key: 'seo_description', label: 'คำอธิบายเว็บบน Google', kind: 'long', rows: 3, max: 160 }
+    ]
+  },
+  {
+    title: 'Resume',
+    fields: [
+      { key: 'show_resume', label: 'แสดงหน้า Resume', kind: 'bool' },
+      { key: 'resume_drive_id', label: 'ไฟล์ Resume (PDF)', kind: 'pdf', hint: 'มีไฟล์แล้วจะมีปุ่ม Download PDF บนหน้า Resume' }
+    ]
+  },
+  {
+    title: 'ตัวเลขเด่นหน้าแรก',
+    desc: 'ช่องแรก (จำนวนระบบ) นับจากจำนวนผลงานให้อัตโนมัติ · ลบตัวเลขออกเพื่อซ่อนช่องนั้น',
+    fields: [
+      { key: 'stat2_value', label: 'ตัวเลขช่องที่ 2', def: '1,049' },
+      { key: 'stat2_label', label: 'คำอธิบายช่องที่ 2', def: 'เคสบริการที่วิเคราะห์' },
+      { key: 'stat3_value', label: 'ตัวเลขช่องที่ 3', def: '24→69%' },
+      { key: 'stat3_label', label: 'คำอธิบายช่องที่ 3', def: 'เคสที่บอทปิดเองได้ (ประเมิน)' }
+    ]
+  },
+  { title: 'การเผยแพร่', fields: [{ key: 'github_repo', label: 'GitHub repo ของเว็บ', hint: 'รูปแบบ owner/ชื่อ-repo — ใช้สั่งสร้างเว็บใหม่' }] }
+];
+
+function checkField(f: Field, x: unknown): string {
+  const t = s(x).trim();
+  if (f.kind === 'bool' || f.kind === 'photo' || f.kind === 'pdf') return '';
+  if (!t) return f.required ? 'ต้องกรอก' : '';
+  if (f.kind === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+  if (f.kind === 'url' && !/^https?:\/\/\S+$/.test(t)) return 'ต้องขึ้นต้นด้วย https://';
+  if (f.kind === 'tel' && !/^[+\d][\d\s-]{6,}$/.test(t)) return 'ใส่เฉพาะตัวเลข เว้นวรรค หรือ -';
+  if (f.max && t.length > f.max) return `ยาว ${t.length} ตัวอักษร (แนะนำไม่เกิน ${f.max})`;
+  return '';
+}
 
 function KvForm({ sheet, rows, saved, oneClick }: { sheet: 'profile' | 'settings'; rows: KV[]; saved: Saved; oneClick?: boolean }) {
   const { api } = useContext(Ctx);
-  const [v, setV] = useState<Record<string, unknown>>(() => Object.fromEntries(rows.map((r) => [r.key, r.value])));
+  const schema = sheet === 'profile' ? PROFILE_GROUPS : SETTINGS_GROUPS;
+  const known = new Set(schema.flatMap((g) => g.fields.map((f) => f.key)));
+  const notes = Object.fromEntries(rows.map((r) => [r.key, r.note]));
+  const others: Field[] = rows.filter((r) => !known.has(r.key)).map((r) => ({ key: r.key, label: r.key, kind: typeof r.value === 'boolean' ? 'bool' : 'text' }));
+  const groups = others.length ? [...schema, { title: 'อื่น ๆ', desc: 'คีย์ที่มีใน Sheet แต่หน้าเว็บยังไม่ได้ใช้', fields: others }] : schema;
+  const initial = () => {
+    const o: Record<string, unknown> = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    schema.forEach((g) => g.fields.forEach((f) => { if (o[f.key] === undefined && f.def !== undefined) o[f.key] = f.def; }));
+    return o;
+  };
+  const [base, setBase] = useState(initial);
+  const [v, setV] = useState(base);
   const [busy, setBusy] = useState(false);
+  const [tried, setTried] = useState(false);
   const set = (k: string, x: unknown) => setV((o) => ({ ...o, [k]: x }));
+  const errs = Object.fromEntries(groups.flatMap((g) => g.fields.map((f) => [f.key, checkField(f, v[f.key])])).filter(([, e]) => e));
+  const changed = Object.keys({ ...base, ...v }).filter((k) => s(base[k]) !== s(v[k]));
+
   async function save() {
+    setTried(true);
+    if (Object.keys(errs).length) return;
     setBusy(true);
-    await saved(await api('saveKv', { sheet, values: v }), sheet === 'profile' ? 'บันทึกโปรไฟล์แล้ว' : 'บันทึกการตั้งค่าแล้ว');
+    const values = Object.fromEntries(changed.map((k) => [k, typeof v[k] === 'string' ? s(v[k]).trim() : v[k] ?? '']));
+    if (await saved(await api('saveKv', { sheet, values }), sheet === 'profile' ? 'บันทึกโปรไฟล์แล้ว' : 'บันทึกการตั้งค่าแล้ว')) setBase(v);
     setBusy(false);
   }
+
+  const input = (f: Field) => {
+    const val = v[f.key];
+    switch (f.kind) {
+      case 'bool':
+        return (
+          <label className="adm-check">
+            <input type="checkbox" checked={bool(val)} onChange={(e) => set(f.key, e.target.checked)} />
+            <span>{bool(val) ? 'เปิด' : 'ปิด'}</span>
+          </label>
+        );
+      case 'photo':
+        return <PhotoSlot id={s(val)} onChange={(id) => set(f.key, id)} />;
+      case 'pdf':
+        return (
+          <div className="adm-slot-act">
+            <em className="adm-file">{s(val) ? 'มีไฟล์แล้ว' : 'ยังไม่มีไฟล์'}</em>
+            <Uploader label={s(val) ? 'เปลี่ยนไฟล์ PDF' : 'อัปโหลด PDF'} accept="application/pdf" onDone={(id) => set(f.key, id)} />
+            {s(val) && <button type="button" className="adm-ghost" onClick={() => set(f.key, '')}>เอาออก</button>}
+          </div>
+        );
+      case 'long':
+        return <textarea rows={f.rows || 3} value={s(val)} placeholder={f.placeholder} onChange={(e) => set(f.key, e.target.value)} />;
+      default:
+        return (
+          <input
+            type={f.kind === 'email' ? 'email' : f.kind === 'url' ? 'url' : f.kind === 'tel' ? 'tel' : 'text'}
+            value={s(val)}
+            placeholder={f.placeholder}
+            onChange={(e) => set(f.key, e.target.value)}
+          />
+        );
+    }
+  };
+
   return (
     <section>
       <div className="adm-head">
         <h2 className="sec-title">{sheet === 'profile' ? 'โปรไฟล์' : 'ตั้งค่า'}</h2>
       </div>
-      <div className="panel adm-kv">
-        {rows.map(({ key, value, note }) => {
-          const isBool = typeof value === 'boolean' || /^(TRUE|FALSE)$/i.test(s(value));
-          return (
-            <div className="adm-f" key={key}>
-              <span>{LABELS[key] || key}</span>
-              {isBool ? (
-                <label className="adm-check">
-                  <input type="checkbox" checked={bool(v[key])} onChange={(e) => set(key, e.target.checked)} />
-                  <span>{bool(v[key]) ? 'เปิด' : 'ปิด'}</span>
-                </label>
-              ) : key === 'resume_drive_id' ? (
-                <div className="adm-slot-act">
-                  <em className="adm-file">{s(v[key]) ? 'มีไฟล์แล้ว' : 'ยังไม่มีไฟล์'}</em>
-                  <Uploader label={s(v[key]) ? 'เปลี่ยนไฟล์ PDF' : 'อัปโหลด PDF'} accept="application/pdf" onDone={(id) => set(key, id)} />
-                  {s(v[key]) && <button type="button" className="adm-ghost" onClick={() => set(key, '')}>เอาออก</button>}
+      <div className="adm-groups">
+        {groups.map((g) => (
+          <fieldset className="panel adm-kv" key={g.title}>
+            <legend className="adm-legend">{g.title}</legend>
+            {g.desc && <p className="adm-hint">{g.desc}</p>}
+            {g.fields.map((f) => {
+              const e = errs[f.key];
+              const show = e && (tried || s(v[f.key]) !== s(base[f.key]));
+              const len = f.max ? s(v[f.key]).trim().length : 0;
+              return (
+                <div className={`adm-f${show ? ' bad' : ''}`} key={f.key}>
+                  {f.label && (
+                    <span>
+                      {f.label}
+                      {f.required && <b className="req"> *</b>}
+                      {f.max ? <em className="adm-count">{len}/{f.max}</em> : null}
+                    </span>
+                  )}
+                  {input(f)}
+                  {show ? <small className="err">{e}</small> : (f.hint || notes[f.key]) && <small>{f.hint || notes[f.key]}</small>}
                 </div>
-              ) : LONG.has(key) ? (
-                <textarea rows={key === 'bio' ? 6 : 3} value={s(v[key])} onChange={(e) => set(key, e.target.value)} />
-              ) : (
-                <input value={s(v[key])} onChange={(e) => set(key, e.target.value)} />
-              )}
-              {note && <small>{note}</small>}
-            </div>
-          );
-        })}
-        {sheet === 'settings' && (
-          <div className="adm-f">
-            <span>เผยแพร่ในคลิกเดียว</span>
-            <em className="adm-file">{oneClick ? 'เปิดอยู่ (ตั้ง GitHub token แล้ว)' : 'ยังไม่ได้ตั้ง — ปุ่มเผยแพร่จะพาไปหน้า GitHub Actions ให้กด Run workflow เอง'}</em>
-            <small>ตั้งได้ใน Google Sheet → เมนู Portfolio → ตั้ง GitHub token</small>
-          </div>
-        )}
+              );
+            })}
+            {g.title === 'การเผยแพร่' && (
+              <div className="adm-f">
+                <span>เผยแพร่อัตโนมัติ</span>
+                <em className="adm-file">{oneClick ? 'เปิดอยู่ — บันทึกแล้วเว็บจริงอัปเดตเองภายใน 5–10 นาที' : 'ยังไม่ได้ตั้ง GitHub token — เว็บจะไม่อัปเดตเอง'}</em>
+                <small>ตั้งหรือเปลี่ยน token ได้ใน Google Sheet → เมนู Portfolio → ตั้ง GitHub token</small>
+              </div>
+            )}
+          </fieldset>
+        ))}
       </div>
       <div className="adm-savebar">
-        <button type="button" className="btn" disabled={busy} onClick={save}>{busy ? 'กำลังบันทึก…' : 'บันทึก'} <span className="arrow">→</span></button>
+        {changed.length > 0 && <span className="adm-dirty">แก้ไข {changed.length} ช่อง ยังไม่ได้บันทึก</span>}
+        {tried && Object.keys(errs).length > 0 && <span className="err">แก้ {Object.keys(errs).length} ช่องที่มีปัญหาก่อนบันทึก</span>}
+        <button type="button" className="btn" disabled={busy || !changed.length} onClick={save}>{busy ? 'กำลังบันทึก…' : 'บันทึก'} <span className="arrow">→</span></button>
       </div>
     </section>
+  );
+}
+
+function PhotoSlot({ id, onChange }: { id: string; onChange: (id: string) => void }) {
+  const { thumbs, loadThumb } = useContext(Ctx);
+  useEffect(() => { if (id) loadThumb(id); }, [id, loadThumb]);
+  const src = id ? thumbs[id] : '';
+  return (
+    <div className="adm-photo">
+      <span className="adm-avatar">{src ? <img src={src} alt="" /> : <i>{id ? '…' : 'ยังไม่มีรูป'}</i>}</span>
+      <div className="adm-slot-act">
+        <Uploader label={id ? 'เปลี่ยนรูป' : 'อัปโหลดรูป'} accept="image/*" square onDone={onChange} />
+        {id && <button type="button" className="adm-ghost" onClick={() => onChange('')}>เอารูปออก</button>}
+      </div>
+    </div>
   );
 }
 
