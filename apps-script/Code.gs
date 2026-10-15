@@ -17,7 +17,7 @@
  * เผยแพร่: เมนู Portfolio → เผยแพร่เว็บ
  *   ถ้าตั้ง Script Property GITHUB_TOKEN (fine-grained token, สิทธิ์ Actions: Read and write เฉพาะ repo นี้)
  *   จะสั่ง GitHub Actions สร้างเว็บใหม่ให้ทันที ถ้าไม่ตั้ง จะแสดงลิงก์ให้กด Run workflow เอง
- *   (เว็บสร้างใหม่อัตโนมัติทุกวันตี 1 อยู่แล้ว)
+ *   (GitHub Actions เช็กข้อมูลทุก 15 นาทีและสร้างเว็บใหม่เองเมื่อข้อมูลเปลี่ยนอยู่แล้ว)
  */
 
 const SHEETS = {
@@ -31,9 +31,9 @@ const SHEETS = {
   messages: ['received_at', 'name', 'email', 'message', 'read'],
   settings: ['key', 'value', 'note']
 };
-const CATEGORIES = ['LINE LIFF', 'Web App', 'AI & Automation', 'Data', 'UI/UX'];
+const CATEGORIES = ['LINE LIFF', 'Web App', 'AI & Automation', 'Data', 'UI/UX', 'System Design', 'IT Infrastructure'];
 const COVER_STYLES = ['liff', 'web', 'map', 'node', 'data', 'mobile', 'doc'];
-const SKILL_CATS = ['ภาษาและ Frontend', 'Backend และแพลตฟอร์ม', 'เครื่องมือและข้อมูล'];
+const SKILL_CATS = ['ภาษาและ Frontend', 'Backend และแพลตฟอร์ม', 'เครื่องมือและข้อมูล', 'การวิเคราะห์และออกแบบระบบ', 'IT Infrastructure', 'ใบรับรองและการอบรม'];
 const TEXT_COLS = { projects: ['id', 'slug', 'start', 'end', 'cover_image_id'], project_images: ['project_id', 'drive_file_id'], experiences: ['start', 'end'], profile: ['value'], settings: ['value'] };
 
 /* ---------------- menu ---------------- */
@@ -44,13 +44,15 @@ function onOpen() {
     .addSeparator()
     .addItem('ตั้งรหัสผ่านหน้า admin', 'menuSetAdminPassword')
     .addItem('ตั้ง GitHub token (เผยแพร่ในคลิกเดียว)', 'menuSetGithubToken')
+    .addItem('เปิดเผยแพร่อัตโนมัติ (ติดตั้งทริกเกอร์)', 'setupAutoPublish')
     .addItem('ตั้งค่าครั้งแรก (สร้างแท็บ)', 'setupPortfolio')
     .addToUi();
 }
 
-/** อัปเดต updated_at อัตโนมัติเมื่อแก้แถวในแท็บ projects */
+/** แก้ใน Sheet → เว็บอัปเดตเอง (autoPublish) · แท็บ projects อัปเดต updated_at ให้ด้วย */
 function onEdit(e) {
   const sh = e.range.getSheet();
+  if (sh.getName() !== 'messages') markDirty_();
   if (sh.getName() !== 'projects' || e.range.getRow() < 2) return;
   const col = SHEETS.projects.indexOf('updated_at') + 1;
   if (e.range.getColumn() === col && e.range.getNumColumns() === 1) return;
@@ -133,6 +135,7 @@ function publicFile_(id) {
   site.projects.forEach(p => p.cover_image_id && allowed.add(String(p.cover_image_id)));
   site.images.forEach(i => allowed.add(String(i.drive_file_id)));
   if (site.settings.resume_drive_id) allowed.add(String(site.settings.resume_drive_id));
+  if (site.profile.photo_drive_id) allowed.add(String(site.profile.photo_drive_id));
   if (!id || !allowed.has(id)) return { ok: false, error: 'file not allowed' };
   const file = DriveApp.getFileById(id);
   const blob = file.getBlob();
@@ -163,6 +166,12 @@ function validate_() {
   });
   const st = readKv_('settings');
   if (st.resume_drive_id && !driveExists_(st.resume_drive_id)) errs.push('settings: เปิดไฟล์ Resume ไม่ได้');
+  const pr = readKv_('profile');
+  if (!pr.name) errs.push('โปรไฟล์: ยังไม่มีชื่อ');
+  if (!pr.title) errs.push('โปรไฟล์: ยังไม่มีตำแหน่ง');
+  if (pr.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(pr.email))) errs.push('โปรไฟล์: รูปแบบอีเมลไม่ถูกต้อง');
+  ['github', 'linkedin'].forEach(k => { if (pr[k] && !/^https?:\/\//.test(String(pr[k]))) errs.push('โปรไฟล์: ลิงก์ ' + k + ' ต้องขึ้นต้นด้วย https://'); });
+  if (pr.photo_drive_id && !driveExists_(pr.photo_drive_id)) errs.push('โปรไฟล์: เปิดไฟล์รูปโปรไฟล์ไม่ได้');
   return errs;
 }
 
@@ -195,6 +204,32 @@ function publish_() {
   return { ok: false, mode: 'link', url: actionsUrl, error: 'GitHub ตอบกลับ ' + res.getResponseCode() + ' — token อาจหมดอายุหรือสิทธิ์ไม่พอ' };
 }
 
+/* ---------------- เผยแพร่อัตโนมัติ ----------------
+ * บันทึกจากหน้า admin หรือแก้ใน Sheet → จด DIRTY_AT
+ * ทริกเกอร์ทุก 5 นาที (autoPublish) เห็นว่าหยุดแก้มาแล้ว ≥ 2 นาที → สั่ง GitHub สร้างเว็บใหม่ 1 ครั้ง
+ * สั่งไม่สำเร็จ (เช่น โควตา UrlFetch เต็ม) ค่าจะค้างไว้และลองใหม่รอบถัดไป · ใช้ UrlFetch เฉพาะตอนมีการแก้เท่านั้น
+ */
+function markDirty_() { PropertiesService.getScriptProperties().setProperty('DIRTY_AT', String(Date.now())); }
+
+function autoPublish() {
+  const props = PropertiesService.getScriptProperties();
+  const at = props.getProperty('DIRTY_AT');
+  if (!at || Date.now() - Number(at) < 2 * 60 * 1000) return;
+  const r = publish_();
+  if (r.mode === 'dispatched') {
+    if (props.getProperty('DIRTY_AT') === at) props.deleteProperty('DIRTY_AT'); // ถ้ามีการแก้ใหม่ระหว่างนี้ ให้รอบถัดไปสั่งอีกครั้ง
+  } else {
+    console.log('autoPublish ยังไม่ได้สั่ง: ' + (r.error || r.mode) + (r.errors ? '\n' + r.errors.join('\n') : ''));
+  }
+}
+
+/** รันครั้งเดียว (หรือจากเมนู) เพื่อติดตั้งทริกเกอร์ทุก 5 นาที */
+function setupAutoPublish() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'autoPublish').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('autoPublish').timeBased().everyMinutes(5).create();
+  try { SpreadsheetApp.getUi().alert('เปิดเผยแพร่อัตโนมัติแล้ว: แก้ข้อมูลแล้วเว็บจะอัปเดตเองภายในประมาณ 5–10 นาที'); } catch (_) {}
+}
+
 function menuPublish() {
   const ui = SpreadsheetApp.getUi();
   const r = publish_();
@@ -206,7 +241,7 @@ function menuPublish() {
     (r.error ? '<p style="color:#b3261e">' + r.error + '</p>' : '') +
     '<p>ข้อมูลถูกต้องแล้ว เปิดหน้า GitHub Actions แล้วกด <b>Run workflow</b> เว็บจะอัปเดตภายใน 1–3 นาที</p>' +
     '<p><a href="' + r.url + '" target="_blank">เปิดหน้า GitHub Actions ↗</a></p>' +
-    '<p style="color:#666">ถ้าไม่กด เว็บจะอัปเดตเองทุกวันตี 1</p></div>').setWidth(420).setHeight(190);
+    '<p style="color:#666">ถ้าไม่กด เว็บจะอัปเดตเองภายในประมาณ 15 นาที</p></div>').setWidth(420).setHeight(190);
   ui.showModalDialog(html, 'เผยแพร่เว็บ');
 }
 
@@ -224,6 +259,7 @@ function admin_(d) {
   const epoch = props.getProperty('ADMIN_EPOCH') || '';
   if (!/^[a-f0-9-]{36}$/.test(token) || !epoch || cache.get('adm_' + token) !== epoch) return { ok: false, auth: false, error: 'กรุณาเข้าสู่ระบบใหม่' };
   cache.put('adm_' + token, epoch, ADMIN_TTL);
+  if (['saveKv', 'saveProject', 'deleteProject', 'saveTable'].indexOf(d.admin) >= 0) markDirty_();
   switch (d.admin) {
     case 'logout': cache.remove('adm_' + token); return { ok: true };
     case 'get': return adminGet_(props);
@@ -404,6 +440,8 @@ function adminFile_(id) {
   const allowed = new Set();
   readTable_('projects').forEach(p => p.cover_image_id && allowed.add(String(p.cover_image_id)));
   readTable_('project_images').forEach(i => i.drive_file_id && allowed.add(String(i.drive_file_id)));
+  const photo = readKv_('profile').photo_drive_id;
+  if (photo) allowed.add(String(photo));
   if (!id || !allowed.has(id)) return { ok: false, error: 'file not allowed' };
   const file = DriveApp.getFileById(id);
   const blob = file.getThumbnail() || file.getBlob();
