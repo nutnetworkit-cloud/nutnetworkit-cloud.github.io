@@ -247,7 +247,7 @@ textarea { min-height: 150px; resize: vertical; }
 .adm select:focus { outline: none; border-color: var(--ink); }
 .adm-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }
 .adm-check { display: flex; gap: 10px; align-items: center; font-size: 14px; cursor: pointer; }
-.adm .adm-check input { width: 18px; height: 18px; padding: 0; accent-color: var(--dark); }
+.adm .adm-check input, .adm-login .adm-check input { width: 18px; height: 18px; padding: 0; accent-color: var(--dark); }
 .adm-slot { display: grid; gap: 12px; }
 .adm-slot-act { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .adm-upload { position: relative; }
