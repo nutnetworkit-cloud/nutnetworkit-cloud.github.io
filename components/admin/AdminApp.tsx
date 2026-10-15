@@ -82,7 +82,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
   const saved = async (r: Res, okText: string) => {
     if (!r.ok) { setNotice({ kind: 'err', text: r.error || 'บันทึกไม่สำเร็จ' }); return false; }
     setDirty(true);
-    setNotice({ kind: 'ok', text: okText + ' — กด "เผยแพร่เว็บ" เพื่อให้ขึ้นเว็บจริง' });
+    setNotice({ kind: 'ok', text: okText + ' — เว็บจริงจะอัปเดตเองภายใน 15 นาที (กด "เผยแพร่เว็บ" ถ้าอยากให้เร็วขึ้น)' });
     await reload();
     return true;
   };
@@ -99,7 +99,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
     const r = await api('publish');
     if (r.errors) return setNotice({ kind: 'err', text: r.error || '', list: r.errors });
     if (r.mode === 'dispatched') { setDirty(false); return setNotice({ kind: 'ok', text: 'สั่งสร้างเว็บใหม่แล้ว เว็บจริงจะอัปเดตภายใน 1–3 นาที', link: s(r.url) }); }
-    if (r.mode === 'link') return setNotice({ kind: r.error ? 'err' : 'ok', text: (r.error ? r.error + ' · ' : 'ข้อมูลถูกต้องแล้ว · ') + 'เปิดหน้า GitHub Actions แล้วกด Run workflow (หรือรอเว็บอัปเดตเองตอนตี 1)', link: s(r.url) });
+    if (r.mode === 'link') { setDirty(false); return setNotice({ kind: 'ok', text: 'ข้อมูลถูกต้องแล้ว · เว็บจะอัปเดตเองภายใน 15 นาที (อยากให้เร็วขึ้น: เปิด GitHub Actions แล้วกด Run workflow)', link: s(r.url) }); }
     setNotice({ kind: 'err', text: r.error || 'เผยแพร่ไม่สำเร็จ' });
   }
 
@@ -134,7 +134,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
             <button type="button" className="adm-ghost" onClick={() => { void api('logout'); logout(); }}>ออกจากระบบ</button>
           </div>
         </div>
-        {dirty && !notice && <p className="adm-note">มีการแก้ไขที่ยังไม่ขึ้นเว็บจริง กด &quot;เผยแพร่เว็บ&quot; เมื่อแก้ครบแล้ว</p>}
+        {dirty && !notice && <p className="adm-note">มีการแก้ไขที่ยังไม่ขึ้นเว็บจริง — เว็บจะอัปเดตเองภายใน 15 นาที</p>}
         {notice && (
           <div className={`adm-notice ${notice.kind}`} role="status">
             <span>{notice.text}</span>
