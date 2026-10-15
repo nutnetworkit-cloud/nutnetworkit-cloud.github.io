@@ -64,6 +64,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <li>
                   <a href={`mailto:${profile.email}`}>{profile.email}</a>
                 </li>
+                {profile.phone && (
+                  <li>
+                    <a href={`tel:${profile.phone.replace(/[^\d+]/g, '')}`}>{profile.phone}</a>
+                  </li>
+                )}
                 <li>{profile.location}</li>
                 <li>
                   <Link href="/contact/">ส่งข้อความ →</Link>

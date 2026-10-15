@@ -21,16 +21,15 @@ export default function Home() {
             <b>{projects.length}</b>
             <span>ระบบที่ออกแบบและส่งมอบ</span>
           </div>
-          <div className="stat s2">
-            <b>1,049</b>
-            <span>เคสบริการที่วิเคราะห์</span>
-          </div>
-          <div className="stat s3">
-            <b>24→69%</b>
-            <span>เคสที่บอทปิดเองได้ (ประเมิน)</span>
-          </div>
+          {(site.settings.stats ?? []).map((st, i) => (
+            <div className={`stat s${i + 2}`} key={st.value + st.label}>
+              <b>{st.value}</b>
+              <span>{st.label}</span>
+            </div>
+          ))}
         </div>
         <div className="about-text">
+          {profile.photo && <img className="avatar" src={profile.photo} alt={profile.name} width={112} height={112} />}
           <h2 className="sec-title">About</h2>
           <p>{firstBio}</p>
           <Link className="btn" href="/about/">
