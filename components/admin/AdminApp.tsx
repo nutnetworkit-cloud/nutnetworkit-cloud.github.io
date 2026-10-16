@@ -24,6 +24,7 @@ type Api = (action: string, body?: Row) => Promise<Res>;
 type Notice = { kind: 'ok' | 'err' | 'busy'; text: string; list?: string[]; link?: string };
 
 const TOKEN_KEY = 'pf_admin_token';
+const DATA_KEY = 'pf_admin_data';
 const store = {
   get: () => { try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } },
   set: (t: string) => { try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch { /* ไม่มี storage ก็ใช้ได้ แค่ต้องล็อกอินใหม่เมื่อรีเฟรช */ } }
@@ -45,7 +46,12 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
 
   useEffect(() => { setToken(store.get()); setReady(true); }, []);
 
-  const logout = useCallback(() => { store.set(''); setToken(''); setData(null); }, []);
+  const logout = useCallback(() => {
+    store.set('');
+    try { sessionStorage.removeItem(DATA_KEY); } catch { /* ไม่มี storage */ }
+    setToken('');
+    setData(null);
+  }, []);
 
   const api: Api = useCallback(
     async (action, body = {}) => {
@@ -64,17 +70,29 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
 
   const reload = useCallback(async () => {
     const r = await api('get');
-    if (r.ok) setData(r as unknown as Data);
-    else setNotice({ kind: 'err', text: r.error || 'โหลดข้อมูลไม่สำเร็จ' });
+    if (r.ok) {
+      setData(r as unknown as Data);
+      try { sessionStorage.setItem(DATA_KEY, JSON.stringify(r)); } catch { /* เต็ม/ปิดไว้ ก็แค่ไม่มีแคช */ }
+    } else setNotice({ kind: 'err', text: r.error || 'โหลดข้อมูลไม่สำเร็จ' });
   }, [api]);
 
-  useEffect(() => { if (token) void reload(); }, [token, reload]);
+  // เปิดหน้าซ้ำ: แสดงข้อมูลชุดล่าสุดที่จำไว้ทันที แล้วโหลดของจริงตามมาเงียบ ๆ
+  useEffect(() => {
+    if (!token) return;
+    try { const c = sessionStorage.getItem(DATA_KEY); if (c) setData(JSON.parse(c) as Data); } catch { /* ไม่มีแคช */ }
+    void reload();
+  }, [token, reload]);
 
+  // รูปที่ขึ้นเว็บแล้วมีไฟล์ย่อ /media/<id>.webp บนเว็บเอง (เร็ว ชัด) · ยังไม่ขึ้นเว็บค่อยดึงผ่าน Apps Script (ช้า)
   const loadThumb = useCallback(
     (id: string) => {
       if (!id || thumbs[id] !== undefined) return;
       setThumbs((t) => ({ ...t, [id]: '' }));
-      void api('file', { id }).then((r) => r.ok && setThumbs((t) => ({ ...t, [id]: `data:${s(r.mime)};base64,${s(r.b64)}` })));
+      const pub = `/media/${id.replace(/[^A-Za-z0-9_-]/g, '')}.webp`;
+      const img = new Image();
+      img.onload = () => setThumbs((t) => ({ ...t, [id]: t[id] || pub }));
+      img.onerror = () => void api('file', { id }).then((r) => r.ok && setThumbs((t) => ({ ...t, [id]: `data:${s(r.mime)};base64,${s(r.b64)}` })));
+      img.src = pub;
     },
     [api, thumbs]
   );
@@ -427,7 +445,7 @@ function ProjectEditor({ data, initial, saved, close }: { data: Data; initial: R
             <legend>รูปเพิ่มเติม (แกลเลอรี)</legend>
             {imgs.map((im, i) => (
               <div className="adm-gal" key={s(im.drive_file_id) + i}>
-                <Thumb id={s(im.drive_file_id)} label="" />
+                <PickThumb id={s(im.drive_file_id)} onChange={(id) => setImgs((a) => a.map((x, j) => (j === i ? { ...x, drive_file_id: id } : x)))} />
                 <input placeholder="คำอธิบายรูป" value={s(im.alt_text)} onChange={(e) => setImgs((a) => a.map((x, j) => (j === i ? { ...x, alt_text: e.target.value } : x)))} />
                 <Order i={i} list={imgs} move={(to) => setImgs((a) => moveItem(a, i, to))} remove={() => setImgs((a) => a.filter((_, j) => j !== i))} />
               </div>
@@ -454,10 +472,29 @@ function Thumb({ id, label }: { id: string; label: string }) {
   return <span className="adm-thumb">{src ? <img src={src} alt="" /> : <i>{id ? '…' : label.slice(0, 2) || '—'}</i>}</span>;
 }
 
+/** รูปที่ชี้เมาส์แล้วขยายดูได้ และคลิกเพื่อเลือกไฟล์ใหม่มาแทน */
+function PickThumb({ id, onChange, side = 'left' }: { id: string; onChange: (id: string) => void; side?: 'left' | 'right' }) {
+  const { thumbs } = useContext(Ctx);
+  const { busy, pick } = useUpload(onChange);
+  const src = thumbs[id];
+  return (
+    <label className={`adm-tw ${busy ? 'busy' : ''}`} title="คลิกเพื่อเปลี่ยนรูป">
+      <Thumb id={id} label="" />
+      <span className="adm-tw-hint">{busy ? 'กำลังอัปโหลด…' : 'คลิกเพื่อเปลี่ยนรูป'}</span>
+      {src && !busy && (
+        <span className={`adm-zoom ${side}`} aria-hidden="true">
+          <img src={src} alt="" />
+        </span>
+      )}
+      <input type="file" accept="image/*" disabled={busy} onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
+    </label>
+  );
+}
+
 function ImageSlot({ id, onChange }: { id: string; onChange: (id: string) => void }) {
   return (
     <div className="adm-slot">
-      {id ? <Thumb id={id} label="" /> : <span className="adm-thumb big"><i>ยังไม่มีรูป</i></span>}
+      {id ? <PickThumb id={id} onChange={onChange} /> : <span className="adm-thumb big"><i>ยังไม่มีรูป</i></span>}
       <div className="adm-slot-act">
         <Uploader label={id ? 'เปลี่ยนรูป' : 'อัปโหลดรูป'} accept="image/*" onDone={onChange} />
         {id && <button type="button" className="adm-ghost" onClick={() => onChange('')}>เอารูปออก</button>}
@@ -468,6 +505,16 @@ function ImageSlot({ id, onChange }: { id: string; onChange: (id: string) => voi
 }
 
 function Uploader({ label, accept, square, onDone }: { label: string; accept: string; square?: boolean; onDone: (id: string) => void }) {
+  const { busy, pick } = useUpload(onDone, square);
+  return (
+    <label className={`adm-ghost adm-upload${busy ? ' busy' : ''}`}>
+      {busy ? 'กำลังอัปโหลด…' : label}
+      <input type="file" accept={accept} disabled={busy} onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
+    </label>
+  );
+}
+
+function useUpload(onDone: (id: string) => void, square?: boolean) {
   const { api, notify, putThumb } = useContext(Ctx);
   const [busy, setBusy] = useState(false);
   async function pick(f: File | undefined) {
@@ -486,12 +533,7 @@ function Uploader({ label, accept, square, onDone }: { label: string; accept: st
     }
     setBusy(false);
   }
-  return (
-    <label className={`adm-ghost adm-upload${busy ? ' busy' : ''}`}>
-      {busy ? 'กำลังอัปโหลด…' : label}
-      <input type="file" accept={accept} disabled={busy} onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
-    </label>
-  );
+  return { busy, pick };
 }
 
 function toB64(f: Blob): Promise<string> {
