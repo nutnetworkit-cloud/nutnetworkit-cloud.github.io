@@ -5,7 +5,9 @@ import type { Project, Site } from './types';
 export const site = raw as unknown as Site;
 
 export const CATEGORIES = ['LINE LIFF', 'Web App', 'AI & Automation', 'Data', 'UI/UX'];
-export const SKILL_CATS = ['ภาษาและ Frontend', 'Backend และแพลตฟอร์ม', 'เครื่องมือและข้อมูล'];
+// ลำดับหมวดทักษะ: ตั้งได้ในหน้า admin (settings.skill_categories) · ยังไม่ตั้ง = ค่าเริ่มต้นชุดนี้
+const DEFAULT_SKILL_CATS = ['ภาษาและ Frontend', 'Backend และแพลตฟอร์ม', 'เครื่องมือและข้อมูล', 'การวิเคราะห์และออกแบบระบบ', 'IT Infrastructure', 'ใบรับรองและการอบรม'];
+export const SKILL_CATS: string[] = site.settings.skillCats?.length ? site.settings.skillCats : DEFAULT_SKILL_CATS;
 
 export const projects: Project[] = site.projects;
 export const featured = projects.filter((p) => p.featured);

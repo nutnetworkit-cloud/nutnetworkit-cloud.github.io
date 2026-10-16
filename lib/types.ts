@@ -60,6 +60,7 @@ export interface Site {
     showResume: boolean;
     resumeUrl: string | null;
     stats: { value: string; label: string }[];
+    skillCats?: string[];
     contactEndpoint: string;
     siteUrl: string;
   };
