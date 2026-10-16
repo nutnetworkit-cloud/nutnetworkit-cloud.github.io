@@ -20,9 +20,21 @@ if (!cfg.gasUrl) {
   process.exit(0);
 }
 
+// Apps Script ตอบ 404/429/5xx เป็นพัก ๆ เมื่อดึงไฟล์ติดกันหลายสิบครั้ง → ลองใหม่ (รอ 3, 6, 12, 24 วิ) ก่อนยอมแพ้
+async function fetchRetry(url, tries = 5) {
+  for (let i = 1; ; i++) {
+    let res;
+    try { res = await fetch(url, { redirect: 'follow' }); } catch (e) { if (i >= tries) throw e; }
+    if (res?.ok) return res;
+    if (i >= tries) throw new Error(`HTTP ${res?.status} จาก ${url.split('?')[0]}`);
+    const wait = 3000 * 2 ** (i - 1);
+    console.warn(`[fetch-data] ${res ? 'HTTP ' + res.status : 'เชื่อมต่อไม่ได้'} → ลองใหม่ใน ${wait / 1000} วิ (ครั้งที่ ${i + 1}/${tries})`);
+    await new Promise((r) => setTimeout(r, wait));
+  }
+}
+
 async function getJson(url) {
-  const res = await fetch(url, { redirect: 'follow' });
-  if (!res.ok) throw new Error(`HTTP ${res.status} จาก ${url.split('?')[0]}`);
+  const res = await fetchRetry(url);
   const text = await res.text();
   let json;
   try { json = JSON.parse(text); } catch { throw new Error('Apps Script ไม่ได้ตอบเป็น JSON — ตรวจว่า deploy เป็นเว็บแอป สิทธิ์ "ทุกคน" แล้ว'); }
