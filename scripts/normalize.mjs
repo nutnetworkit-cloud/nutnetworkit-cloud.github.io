@@ -81,6 +81,8 @@ export function normalize(raw, opt) {
         const n = i + 2;
         return st[`stat${n}_value`] === undefined ? { value: v, label: l } : { value: str(st[`stat${n}_value`]), label: str(st[`stat${n}_label`]) };
       }).filter((x) => x.value),
+      // หมวดทักษะตามลำดับที่ตั้งในหน้า admin (บรรทัดละหมวด) · ว่าง = ใช้ค่าเริ่มต้นใน lib/data.ts
+      skillCats: str(st.skill_categories).split('\n').map((x) => x.trim()).filter(Boolean),
       contactEndpoint: opt.contactEndpoint,
       siteUrl: opt.siteUrl
     }
