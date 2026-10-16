@@ -809,6 +809,28 @@ function Skills({ data, saved }: { data: Data; saved: Saved }) {
   const upd = (i: number, k: string, x: unknown) => setList((a) => a.map((r, j) => (j === i ? { ...r, [k]: x } : r)));
   const count = (id: number) => list.filter((r) => r._c === id).length;
   const home = cats.filter((c) => count(c.id) > 0).slice(0, 3).map((c) => c.id);
+  const [focusCat, setFocusCat] = useState<number | null>(null);
+  // หลังสร้างหมวดใหม่/เลือก "แก้ชื่อหมวด" จาก dropdown → เลื่อนไปที่ช่องชื่อหมวดแล้วให้พิมพ์ได้ทันที
+  useEffect(() => {
+    if (focusCat == null) return;
+    const el = document.querySelector<HTMLInputElement>(`[data-cat="${focusCat}"]`);
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el?.focus({ preventScroll: true });
+    el?.select();
+    setFocusCat(null);
+  }, [focusCat]);
+  const NEW_CAT = -1;
+  const RENAME_CAT = -2;
+  function addCat() {
+    const id = Math.max(-1, ...cats.map((c) => c.id)) + 1;
+    setCats((a) => [...a, { id, name: '' }]);
+    setFocusCat(id);
+    return id;
+  }
+  function pickCat(i: number, cur: number, v: number) {
+    if (v === RENAME_CAT) return setFocusCat(cur);
+    upd(i, '_c', v === NEW_CAT ? addCat() : v);
+  }
 
   async function save() {
     const names = cats.map((c) => c.name.trim());
@@ -842,14 +864,14 @@ function Skills({ data, saved }: { data: Data; saved: Saved }) {
     <section>
       <div className="adm-head">
         <h2 className="sec-title">ทักษะ <small>{list.length}</small></h2>
-        <button type="button" className="btn" onClick={() => setCats((a) => [...a, { id: Math.max(-1, ...a.map((c) => c.id)) + 1, name: '' }])}>+ เพิ่มหมวด</button>
+        <button type="button" className="btn" onClick={addCat}>+ เพิ่มหมวด</button>
       </div>
-      <p className="adm-hint adm-order-hint">แก้ชื่อหมวดได้ที่หัวกล่อง · ◀ ▶ สลับลำดับหมวด · 3 หมวดแรกที่มีทักษะจะแสดงในหน้าแรกส่วน &quot;What I Do&quot; · หน้า About แสดงทุกหมวดตามลำดับนี้</p>
+      <p className="adm-hint adm-order-hint">แก้ชื่อหมวดได้ที่หัวกล่อง หรือเลือก "✎ แก้ชื่อหมวด" / "＋ สร้างหมวดใหม่" ท้าย dropdown · ◀ ▶ สลับลำดับหมวด · 3 หมวดแรกที่มีทักษะจะแสดงในหน้าแรกส่วน &quot;What I Do&quot; · หน้า About แสดงทุกหมวดตามลำดับนี้</p>
       <div className="adm-cats">
         {cats.map((cat, ci) => (
           <div className="panel adm-cat" key={cat.id}>
             <div className="adm-cat-head">
-              <input className="adm-cat-name" value={cat.name} placeholder="ชื่อหมวด เช่น Cloud และ DevOps" aria-label="ชื่อหมวด" onChange={(e) => setCats((a) => a.map((c) => (c.id === cat.id ? { ...c, name: e.target.value } : c)))} />
+              <input className="adm-cat-name" data-cat={cat.id} value={cat.name} placeholder="ชื่อหมวด เช่น Cloud และ DevOps" aria-label="ชื่อหมวด" onChange={(e) => setCats((a) => a.map((c) => (c.id === cat.id ? { ...c, name: e.target.value } : c)))} />
               <span className="adm-order">
                 <button type="button" title="เลื่อนหมวดไปก่อนหน้า" aria-label="เลื่อนหมวดไปก่อนหน้า" disabled={ci === 0} onClick={() => moveCat(ci, -1)}>◀</button>
                 <button type="button" title="เลื่อนหมวดไปถัดไป" aria-label="เลื่อนหมวดไปถัดไป" disabled={ci === cats.length - 1} onClick={() => moveCat(ci, 1)}>▶</button>
@@ -863,8 +885,11 @@ function Skills({ data, saved }: { data: Data; saved: Saved }) {
               r._c !== cat.id ? null : (
                 <div className="adm-line" key={i}>
                   <input value={s(r.name)} placeholder="ชื่อทักษะ" onChange={(e) => upd(i, 'name', e.target.value)} />
-                  <select value={cat.id} aria-label="ย้ายไปหมวด" onChange={(e) => upd(i, '_c', Number(e.target.value))}>
-                    {cats.map((c) => <option key={c.id} value={c.id}>{c.name || '(หมวดใหม่)'}</option>)}
+                  <select value={cat.id} aria-label="หมวด" onChange={(e) => pickCat(i, cat.id, Number(e.target.value))}>
+                    {cats.map((c) => <option key={c.id} value={c.id}>{c.name || '(หมวดใหม่ ยังไม่มีชื่อ)'}</option>)}
+                    <option disabled>──────────</option>
+                    <option value={NEW_CAT}>＋ สร้างหมวดใหม่ แล้วย้ายทักษะนี้ไป</option>
+                    <option value={RENAME_CAT}>✎ แก้ชื่อหมวด &quot;{cat.name || 'หมวดนี้'}&quot;</option>
                   </select>
                   <Order i={i} list={list} same={(x) => x._c === cat.id} move={(to) => setList((a) => moveItem(a, i, to))} remove={() => setList((a) => a.filter((_, j) => j !== i))} />
                 </div>
