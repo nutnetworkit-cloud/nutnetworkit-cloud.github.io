@@ -321,6 +321,11 @@ textarea { min-height: 150px; resize: vertical; }
 .adm-cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .adm-cats .panel { padding: 22px; gap: 10px; }
 .adm-cats h3 { font-size: 15px; font-weight: 500; }
+.adm-cat-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.adm .panel input.adm-cat-name { font-size: 15px; font-weight: 500; color: var(--ink); background: transparent; border: 1px dashed var(--light); padding: 8px 10px; }
+.adm .panel input.adm-cat-name:focus { background: var(--bg); border-style: solid; border-color: var(--ink); }
+.adm-cat-head .adm-order button { width: 30px; height: 30px; font-size: 11px; }
+.adm-cat-meta { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; margin-bottom: 4px; }
 .adm-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
 .adm-line select { grid-column: 1; font-size: 12.5px !important; padding: 6px 10px !important; color: var(--muted) !important; }
 .adm-line .adm-order { grid-column: 2; grid-row: 1 / span 2; flex-direction: column; }

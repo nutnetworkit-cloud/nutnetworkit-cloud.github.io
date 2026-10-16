@@ -9,7 +9,7 @@ export default function Home() {
   const heroProjects = featured.length ? featured : projects.slice(0, 3);
   const mosaic = [...heroProjects, ...projects.filter((p) => !heroProjects.includes(p))].slice(0, 5);
   const firstBio = paragraphs(profile.bio)[0] ?? '';
-  const focus = SKILL_CATS.map((c) => ({ cat: c, skills: site.skills.filter((s) => s.category === c).map((s) => s.name) })).filter((f) => f.skills.length);
+  const focus = SKILL_CATS.map((c) => ({ cat: c, skills: site.skills.filter((s) => s.category === c).map((s) => s.name) })).filter((f) => f.skills.length).slice(0, 3); // 3 หมวดแรกที่มีทักษะ
 
   return (
     <>
