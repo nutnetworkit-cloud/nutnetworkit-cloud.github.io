@@ -209,31 +209,103 @@ const EMPTY_PROJECT: Row = {
   results: '', metric_value: '', metric_label: '', demo_url: '', github_url: '', start: '', end: '', status: 'draft', featured: false, sort_order: '', cover_image_id: ''
 };
 
+/* ตำแหน่งที่ผลงานไปแสดงบนเว็บ — ต้องตรงกับ app/page.tsx (สไลด์ = ผลงาน "หน้าแรก", Selected Projects = 5 ช่องแรก) */
+function placements(list: Row[]) {
+  const pub = list.filter((p) => s(p.status) === 'published' && s(p.slug));
+  const feat = pub.filter((p) => bool(p.featured));
+  const hero = feat.length ? feat : pub.slice(0, 3);
+  const mosaic = [...hero, ...pub.filter((p) => !hero.includes(p))].slice(0, 5);
+  const at = new Map<Row, { page: number; hero: number; mosaic: number }>();
+  pub.forEach((p, i) => at.set(p, { page: i + 1, hero: hero.indexOf(p) + 1, mosaic: mosaic.indexOf(p) + 1 }));
+  return { at, pubCount: pub.length, heroCount: hero.length };
+}
+
 function Projects({ data, saved }: { data: Data; saved: Saved }) {
+  const { api, notify } = useContext(Ctx);
   const [edit, setEdit] = useState<Row | null>(null);
+  const [order, setOrder] = useState<Row[]>(data.projects);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setOrder(data.projects), [data.projects]);
+
   if (edit) return <ProjectEditor data={data} initial={edit} saved={saved} close={() => setEdit(null)} />;
   const next = Math.max(0, ...data.projects.map((p) => Number(p.sort_order) || 0)) + 1;
+  const changed = order.some((p, i) => p !== data.projects[i]);
+  const { at, pubCount, heroCount } = placements(order);
+  const move = (i: number, d: number) =>
+    setOrder((o) => {
+      const j = i + d;
+      if (j < 0 || j >= o.length) return o;
+      const n = [...o];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
+
+  async function saveOrder() {
+    // บันทึกเฉพาะแถวที่เลขลำดับเปลี่ยน (ส่ง featured ไปด้วย ไม่งั้นฝั่ง Apps Script ถือว่าเป็น false)
+    const todo = order.map((p, i) => ({ p, n: i + 1 })).filter(({ p, n }) => Number(p.sort_order) !== n);
+    setBusy(true);
+    let r: Res = { ok: true };
+    for (const [k, { p, n }] of todo.entries()) {
+      notify({ kind: 'busy', text: `กำลังบันทึกลำดับ… (${k + 1}/${todo.length})` });
+      r = await api('saveProject', { row: { id: p.id, slug: p.slug, featured: bool(p.featured), sort_order: n } });
+      if (!r.ok) break;
+    }
+    await saved(r, 'บันทึกลำดับผลงานแล้ว');
+    setBusy(false);
+  }
+
   return (
     <section>
       <div className="adm-head">
         <h2 className="sec-title">ผลงาน <small>{data.projects.length}</small></h2>
         <button type="button" className="btn" onClick={() => setEdit({ ...EMPTY_PROJECT, sort_order: next })}>+ เพิ่มผลงาน</button>
       </div>
+      <p className="adm-hint adm-order-hint">
+        กด ▲ ▼ เพื่อจัดลำดับ แล้วกด &quot;บันทึกลำดับ&quot; · ลำดับนี้ใช้ทั้งหน้า Projects, สไลด์หน้าแรก ({heroCount} ผลงานที่ติ๊ก &quot;หน้าแรก&quot;) และ Selected Projects (5 ช่องแรก) · ฉบับร่างไม่แสดงบนเว็บ
+      </p>
+      {changed && (
+        <div className="adm-orderbar" role="status">
+          <span>ลำดับมีการเปลี่ยนแปลง ยังไม่ได้บันทึก</span>
+          <button type="button" className="adm-ghost" disabled={busy} onClick={() => setOrder(data.projects)}>ยกเลิก</button>
+          <button type="button" className="btn" disabled={busy} onClick={saveOrder}>{busy ? 'กำลังบันทึก…' : 'บันทึกลำดับ'}</button>
+        </div>
+      )}
       <div className="adm-list">
-        {data.projects.map((p) => (
-          <button type="button" className="adm-item" key={s(p.id)} onClick={() => setEdit(p)}>
-            <Thumb id={s(p.cover_image_id)} label={s(p.title)} />
-            <span className="adm-item-main">
-              <b>{s(p.title) || '(ไม่มีชื่อ)'}</b>
-              <small>{s(p.category)} · /projects/{s(p.slug)}/</small>
-            </span>
-            <span className="adm-tags">
-              {bool(p.featured) && <em className="adm-tag">หน้าแรก</em>}
-              <em className={`adm-tag ${s(p.status) === 'published' ? 'pub' : 'draft'}`}>{s(p.status) === 'published' ? 'แสดงบนเว็บ' : 'ฉบับร่าง'}</em>
-            </span>
-            <span className="adm-edit">แก้ไข →</span>
-          </button>
-        ))}
+        {order.map((p, i) => {
+          const w = at.get(p);
+          return (
+            <div className="adm-orow" key={s(p.id)}>
+              <span className="adm-pos" aria-label={`ลำดับที่ ${i + 1}`}>{String(i + 1).padStart(2, '0')}</span>
+              <button type="button" className="adm-item" onClick={() => setEdit(p)}>
+                <Thumb id={s(p.cover_image_id)} label={s(p.title)} />
+                <span className="adm-item-main">
+                  <b>{s(p.title) || '(ไม่มีชื่อ)'}</b>
+                  <small>{s(p.category)} · /projects/{s(p.slug)}/</small>
+                  <span className="adm-where">
+                    {w ? (
+                      <>
+                        <i>หน้า Projects ลำดับ {w.page}/{pubCount}</i>
+                        {w.hero > 0 && <i className="hot">สไลด์หน้าแรก {w.hero}/{heroCount}</i>}
+                        {w.mosaic > 0 && <i className="hot">Selected Projects ช่อง {w.mosaic}{w.mosaic <= 2 ? ' (ใหญ่)' : ''}</i>}
+                      </>
+                    ) : (
+                      <i className="off">ไม่แสดงบนเว็บ</i>
+                    )}
+                  </span>
+                </span>
+                <span className="adm-tags">
+                  {bool(p.featured) && <em className="adm-tag">หน้าแรก</em>}
+                  <em className={`adm-tag ${s(p.status) === 'published' ? 'pub' : 'draft'}`}>{s(p.status) === 'published' ? 'แสดงบนเว็บ' : 'ฉบับร่าง'}</em>
+                </span>
+                <span className="adm-edit">แก้ไข →</span>
+              </button>
+              <span className="adm-order adm-updown">
+                <button type="button" aria-label={`เลื่อน ${s(p.title)} ขึ้น`} title="เลื่อนขึ้น" disabled={busy || i === 0} onClick={() => move(i, -1)}>▲</button>
+                <button type="button" aria-label={`เลื่อน ${s(p.title)} ลง`} title="เลื่อนลง" disabled={busy || i === order.length - 1} onClick={() => move(i, 1)}>▼</button>
+              </span>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
