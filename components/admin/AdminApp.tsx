@@ -43,6 +43,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [dirty, setDirty] = useState(false);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [fresh, setFresh] = useState(false); // false = กำลังแสดงข้อมูลที่จำไว้ ยังไม่ได้ของจริงจาก Sheet
 
   useEffect(() => { setToken(store.get()); setReady(true); }, []);
 
@@ -72,6 +73,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
     const r = await api('get');
     if (r.ok) {
       setData(r as unknown as Data);
+      setFresh(true);
       try { sessionStorage.setItem(DATA_KEY, JSON.stringify(r)); } catch { /* เต็ม/ปิดไว้ ก็แค่ไม่มีแคช */ }
     } else setNotice({ kind: 'err', text: r.error || 'โหลดข้อมูลไม่สำเร็จ' });
   }, [api]);
@@ -153,6 +155,7 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
             <button type="button" className="adm-ghost" onClick={() => { void api('logout'); logout(); }}>ออกจากระบบ</button>
           </div>
         </div>
+        {data && !fresh && <p className="adm-hint">กำลังอัปเดตข้อมูลล่าสุดจาก Sheet…</p>}
         {dirty && !notice && <p className="adm-note">มีการแก้ไขที่ยังไม่ขึ้นเว็บจริง — เว็บจะอัปเดตเองภายใน 5–10 นาที</p>}
         {notice && (
           <div className={`adm-notice ${notice.kind}`} role="status">
@@ -165,15 +168,15 @@ export default function AdminApp({ endpoint }: { endpoint: string }) {
         {!data ? (
           <p className="adm-empty">กำลังโหลดข้อมูล…</p>
         ) : tab === 'projects' ? (
-          <Projects data={data} saved={saved} />
+          <Projects key={String(fresh)} data={data} saved={saved} />
         ) : tab === 'profile' ? (
-          <KvForm key="profile" sheet="profile" rows={data.profile} saved={saved} />
+          <KvForm key={`profile-${fresh}`} sheet="profile" rows={data.profile} saved={saved} />
         ) : tab === 'settings' ? (
-          <KvForm key="settings" sheet="settings" rows={data.settings} saved={saved} oneClick={data.oneClickPublish} />
+          <KvForm key={`settings-${fresh}`} sheet="settings" rows={data.settings} saved={saved} oneClick={data.oneClickPublish} />
         ) : tab === 'skills' ? (
-          <Skills data={data} saved={saved} />
+          <Skills key={String(fresh)} data={data} saved={saved} />
         ) : tab === 'experiences' ? (
-          <Experiences data={data} saved={saved} />
+          <Experiences key={String(fresh)} data={data} saved={saved} />
         ) : (
           <Messages data={data} reload={reload} />
         )}
@@ -664,7 +667,7 @@ function KvForm({ sheet, rows, saved, oneClick }: { sheet: 'profile' | 'settings
   const schema = sheet === 'profile' ? PROFILE_GROUPS : SETTINGS_GROUPS;
   const known = new Set(schema.flatMap((g) => g.fields.map((f) => f.key)));
   const notes = Object.fromEntries(rows.map((r) => [r.key, r.note]));
-  const others: Field[] = rows.filter((r) => !known.has(r.key)).map((r) => ({ key: r.key, label: r.key, kind: typeof r.value === 'boolean' ? 'bool' : 'text' }));
+  const others: Field[] = rows.filter((r) => !known.has(r.key) && r.key !== SKILL_CAT_KEY).map((r) => ({ key: r.key, label: r.key, kind: typeof r.value === 'boolean' ? 'bool' : 'text' }));
   const groups = others.length ? [...schema, { title: 'อื่น ๆ', desc: 'คีย์ที่มีใน Sheet แต่หน้าเว็บยังไม่ได้ใช้', fields: others }] : schema;
   const initial = () => {
     const o: Record<string, unknown> = Object.fromEntries(rows.map((r) => [r.key, r.value]));
@@ -785,37 +788,89 @@ function PhotoSlot({ id, onChange }: { id: string; onChange: (id: string) => voi
 }
 
 /* ---------------- ทักษะ ---------------- */
+/* หมวดทักษะเก็บใน settings.skill_categories (บรรทัดละหมวด ตามลำดับ) · 3 หมวดแรกที่มีทักษะ = "What I Do" หน้าแรก
+   ระหว่างแก้ ทักษะอ้างหมวดด้วย id (_c) เพื่อให้เปลี่ยนชื่อหมวดได้โดยทักษะไม่หลุด แล้วค่อยแปลงกลับเป็นชื่อตอนบันทึก */
+type Cat = { id: number; name: string };
+const SKILL_CAT_KEY = 'skill_categories';
+
 function Skills({ data, saved }: { data: Data; saved: Saved }) {
-  const { api } = useContext(Ctx);
-  const [list, setList] = useState<Row[]>(data.skills);
+  const { api, notify } = useContext(Ctx);
+  const [init] = useState(() => {
+    const stored = s(data.settings.find((r) => r.key === SKILL_CAT_KEY)?.value).split('\n').map((x) => x.trim()).filter(Boolean);
+    const names = stored.length ? stored : data.lists.skillCats;
+    const all = [...names, ...data.skills.map((r) => s(r.category).trim()).filter((c) => c && !names.includes(c))];
+    const cats: Cat[] = [...new Set(all)].map((name, id) => ({ id, name }));
+    const list: Row[] = data.skills.map((r) => ({ ...r, _c: cats.find((c) => c.name === s(r.category).trim())?.id ?? 0 }));
+    return { cats, list, stored: stored.join('\n') };
+  });
+  const [cats, setCats] = useState<Cat[]>(init.cats);
+  const [list, setList] = useState<Row[]>(init.list);
   const [busy, setBusy] = useState(false);
-  const upd = (i: number, k: string, x: string) => setList((a) => a.map((r, j) => (j === i ? { ...r, [k]: x } : r)));
+  const upd = (i: number, k: string, x: unknown) => setList((a) => a.map((r, j) => (j === i ? { ...r, [k]: x } : r)));
+  const count = (id: number) => list.filter((r) => r._c === id).length;
+  const home = cats.filter((c) => count(c.id) > 0).slice(0, 3).map((c) => c.id);
+
   async function save() {
+    const names = cats.map((c) => c.name.trim());
+    if (names.some((n) => !n)) return notify({ kind: 'err', text: 'ตั้งชื่อหมวดให้ครบก่อนบันทึก' });
+    const dup = names.find((n, i) => names.indexOf(n) !== i);
+    if (dup) return notify({ kind: 'err', text: `มีหมวดชื่อ "${dup}" ซ้ำกัน` });
     setBusy(true);
-    await saved(await api('saveTable', { sheet: 'skills', rows: list.filter((r) => s(r.name).trim()) }), 'บันทึกทักษะแล้ว');
+    notify({ kind: 'busy', text: 'กำลังบันทึก…' });
+    const joined = names.join('\n');
+    let r: Res = { ok: true };
+    if (joined !== init.stored) r = await api('saveKv', { sheet: 'settings', values: { [SKILL_CAT_KEY]: joined } });
+    if (r.ok) {
+      const rows = list.filter((x) => s(x.name).trim()).map((x) => ({ name: s(x.name).trim(), category: cats.find((c) => c.id === x._c)?.name.trim() || '' }));
+      r = await api('saveTable', { sheet: 'skills', rows });
+    }
+    await saved(r, 'บันทึกทักษะและหมวดแล้ว');
     setBusy(false);
   }
+
+  function moveCat(i: number, d: number) {
+    setCats((a) => {
+      const j = i + d;
+      if (j < 0 || j >= a.length) return a;
+      const n = [...a];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
+  }
+
   return (
     <section>
       <div className="adm-head">
         <h2 className="sec-title">ทักษะ <small>{list.length}</small></h2>
+        <button type="button" className="btn" onClick={() => setCats((a) => [...a, { id: Math.max(-1, ...a.map((c) => c.id)) + 1, name: '' }])}>+ เพิ่มหมวด</button>
       </div>
+      <p className="adm-hint adm-order-hint">แก้ชื่อหมวดได้ที่หัวกล่อง · ◀ ▶ สลับลำดับหมวด · 3 หมวดแรกที่มีทักษะจะแสดงในหน้าแรกส่วน &quot;What I Do&quot; · หน้า About แสดงทุกหมวดตามลำดับนี้</p>
       <div className="adm-cats">
-        {data.lists.skillCats.map((cat) => (
-          <div className="panel" key={cat}>
-            <h3>{cat}</h3>
+        {cats.map((cat, ci) => (
+          <div className="panel adm-cat" key={cat.id}>
+            <div className="adm-cat-head">
+              <input className="adm-cat-name" value={cat.name} placeholder="ชื่อหมวด เช่น Cloud และ DevOps" aria-label="ชื่อหมวด" onChange={(e) => setCats((a) => a.map((c) => (c.id === cat.id ? { ...c, name: e.target.value } : c)))} />
+              <span className="adm-order">
+                <button type="button" title="เลื่อนหมวดไปก่อนหน้า" aria-label="เลื่อนหมวดไปก่อนหน้า" disabled={ci === 0} onClick={() => moveCat(ci, -1)}>◀</button>
+                <button type="button" title="เลื่อนหมวดไปถัดไป" aria-label="เลื่อนหมวดไปถัดไป" disabled={ci === cats.length - 1} onClick={() => moveCat(ci, 1)}>▶</button>
+                <button type="button" className="x" title={count(cat.id) ? 'ลบหรือย้ายทักษะในหมวดนี้ออกก่อน' : 'ลบหมวด'} aria-label="ลบหมวด" disabled={count(cat.id) > 0} onClick={() => setCats((a) => a.filter((c) => c.id !== cat.id))}>×</button>
+              </span>
+            </div>
+            <small className="adm-cat-meta">
+              หมวดที่ {ci + 1} · {count(cat.id)} ทักษะ{home.includes(cat.id) && <em className="adm-tag pub">หน้าแรก</em>}
+            </small>
             {list.map((r, i) =>
-              s(r.category) !== cat ? null : (
+              r._c !== cat.id ? null : (
                 <div className="adm-line" key={i}>
                   <input value={s(r.name)} placeholder="ชื่อทักษะ" onChange={(e) => upd(i, 'name', e.target.value)} />
-                  <select value={cat} aria-label="หมวด" onChange={(e) => upd(i, 'category', e.target.value)}>
-                    {data.lists.skillCats.map((c) => <option key={c}>{c}</option>)}
+                  <select value={cat.id} aria-label="ย้ายไปหมวด" onChange={(e) => upd(i, '_c', Number(e.target.value))}>
+                    {cats.map((c) => <option key={c.id} value={c.id}>{c.name || '(หมวดใหม่)'}</option>)}
                   </select>
-                  <Order i={i} list={list} same={(x) => s(x.category) === cat} move={(to) => setList((a) => moveItem(a, i, to))} remove={() => setList((a) => a.filter((_, j) => j !== i))} />
+                  <Order i={i} list={list} same={(x) => x._c === cat.id} move={(to) => setList((a) => moveItem(a, i, to))} remove={() => setList((a) => a.filter((_, j) => j !== i))} />
                 </div>
               )
             )}
-            <button type="button" className="adm-ghost" onClick={() => setList((a) => [...a, { name: '', category: cat }])}>+ เพิ่มทักษะ</button>
+            <button type="button" className="adm-ghost" onClick={() => setList((a) => [...a, { name: '', _c: cat.id }])}>+ เพิ่มทักษะ</button>
           </div>
         ))}
       </div>
