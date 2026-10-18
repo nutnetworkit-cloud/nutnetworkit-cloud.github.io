@@ -122,6 +122,13 @@ main { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(72px, 9v
 .avatar-f img { position: relative; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; background: var(--panel-2); }
 .avatar-f.lg { width: 200px; height: 240px; margin: 0 16px 16px 0; }
 .avatar-f.lg::before { inset: 16px -16px -16px 16px; }
+/* ชี้ที่รูปโปรไฟล์ = ภาพขยายเต็มรูปด้านขวา */
+.avatar-f { cursor: zoom-in; outline: none; }
+.avatar-zoom { position: absolute; z-index: 25; left: calc(100% + 28px); top: 50%; width: 360px; padding: 8px; background: var(--bg); border: 1px solid var(--line); box-shadow: 0 22px 56px rgba(0,0,0,.22); transform: translateY(-50%) scale(.96); transform-origin: left center; opacity: 0; visibility: hidden; transition: opacity .2s, transform .2s, visibility 0s .2s; pointer-events: none; }
+.avatar-f .avatar-zoom img { height: auto; aspect-ratio: auto; object-fit: contain; }
+.avatar-f:hover .avatar-zoom, .avatar-f:focus-visible .avatar-zoom { opacity: 1; visibility: visible; transform: translateY(-50%); transition-delay: .15s, .15s, 0s; }
+.avatar-f:focus-visible img:first-child { outline: 2px solid var(--ink); outline-offset: 3px; }
+@media (hover: none), (max-width: 760px) { .avatar-zoom { display: none; } .avatar-f { cursor: default; } }
 .page-h.has-photo { grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: clamp(20px, 4vw, 40px); }
 .page-h-text { display: grid; gap: 18px; min-width: 0; }
 

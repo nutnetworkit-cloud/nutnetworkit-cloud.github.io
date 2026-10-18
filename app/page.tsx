@@ -3,6 +3,7 @@ import ContactBlock from '@/components/ContactBlock';
 import HeroSlider from '@/components/HeroSlider';
 import Tile from '@/components/Tile';
 import { featured, paragraphs, projects, SKILL_CATS, site } from '@/lib/data';
+import Avatar from '@/components/Avatar';
 
 export default function Home() {
   const { profile } = site;
@@ -29,7 +30,7 @@ export default function Home() {
           ))}
         </div>
         <div className="about-text">
-          {profile.photo && <span className="avatar-f"><img src={profile.photo} alt={profile.name} width={120} height={144} /></span>}
+          {profile.photo && <Avatar src={profile.photo} alt={profile.name} />}
           <h2 className="sec-title">About</h2>
           <p>{firstBio}</p>
           <Link className="btn" href="/about/">
