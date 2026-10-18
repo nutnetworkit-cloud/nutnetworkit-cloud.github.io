@@ -29,7 +29,7 @@ export default function Home() {
           ))}
         </div>
         <div className="about-text">
-          {profile.photo && <img className="avatar" src={profile.photo} alt={profile.name} width={112} height={112} />}
+          {profile.photo && <span className="avatar-f"><img src={profile.photo} alt={profile.name} width={120} height={144} /></span>}
           <h2 className="sec-title">About</h2>
           <p>{firstBio}</p>
           <Link className="btn" href="/about/">

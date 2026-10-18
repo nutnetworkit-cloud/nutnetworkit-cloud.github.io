@@ -116,6 +116,12 @@ main { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(72px, 9v
 .about-text p { color: var(--muted); }
 .avatar { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; background: var(--panel-2); }
 .avatar.lg { width: 168px; height: 168px; }
+/* รูปโปรไฟล์: สี่เหลี่ยมแนวตั้ง + เส้นกรอบเยื้องด้านหลัง (แบบที่ 1 ที่ user เลือก) */
+.avatar-f { position: relative; display: block; flex: none; justify-self: start; width: 120px; height: 144px; margin: 0 12px 12px 0; }
+.avatar-f::before { content: ''; position: absolute; inset: 12px -12px -12px 12px; border: 1px solid var(--ink); }
+.avatar-f img { position: relative; display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; background: var(--panel-2); }
+.avatar-f.lg { width: 200px; height: 240px; margin: 0 16px 16px 0; }
+.avatar-f.lg::before { inset: 16px -16px -16px 16px; }
 .page-h.has-photo { grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: clamp(20px, 4vw, 40px); }
 .page-h-text { display: grid; gap: 18px; min-width: 0; }
 
@@ -371,6 +377,7 @@ textarea { min-height: 150px; resize: vertical; }
   .wrap { padding-inline: 18px; }
   .page-h.has-photo { grid-template-columns: minmax(0, 1fr); }
   .avatar.lg { width: 120px; height: 120px; }
+  .avatar-f.lg { width: 150px; height: 180px; }
   .top-in { height: 72px; gap: 20px; }
   .nav { gap: 22px; }
   .mosaic > :nth-child(n) { grid-column: span 6; }
