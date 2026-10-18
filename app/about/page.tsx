@@ -11,7 +11,7 @@ export default function AboutPage() {
   return (
     <>
       <section className={`page-h${profile.photo ? ' has-photo' : ''}`}>
-        {profile.photo && <img className="avatar lg" src={profile.photo} alt={profile.name} width={168} height={168} />}
+        {profile.photo && <span className="avatar-f lg"><img src={profile.photo} alt={profile.name} width={200} height={240} /></span>}
         <div className="page-h-text">
           <Heading light="About" bold={profile.name} />
           <p className="lede">
