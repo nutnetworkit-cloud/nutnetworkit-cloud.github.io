@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Heading from '@/components/Heading';
 import Skills from '@/components/Skills';
 import { projects, site } from '@/lib/data';
+import Avatar from '@/components/Avatar';
 
 export const metadata: Metadata = { title: 'Resume' };
 
@@ -12,7 +13,7 @@ export default function ResumePage() {
   return (
     <>
       <section className={`page-h${profile.photo ? ' has-photo' : ''}`}>
-        {profile.photo && <span className="avatar-f lg"><img src={profile.photo} alt={profile.name} width={200} height={240} /></span>}
+        {profile.photo && <Avatar src={profile.photo} alt={profile.name} lg />}
         <div className="page-h-text">
           <Heading light="Resume" bold={profile.name} />
           <p className="lede">{[profile.title, profile.location, profile.email, profile.phone].filter(Boolean).join(' · ')}</p>
